@@ -7,14 +7,14 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT;
 
-app.get("/", async (req: Request, res: Response) => {
+app.get("/transaction", async (req: Request, res: Response) => {
 
   
-let transaction = await supabase
+let data = await supabase
 .from('transaction')
 .select('*')
   
-  res.json(transaction);
+  res.json(data.data);
 });
 
 app.listen(port, () => {
