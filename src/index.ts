@@ -1,13 +1,20 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
+import supabase from "./lib/db";
 
 dotenv.config();
 
 const app: Express = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Express + TypeScript Server");
+app.get("/", async (req: Request, res: Response) => {
+
+  
+let transaction = await supabase
+.from('transaction')
+.select('*')
+  
+  res.json(transaction);
 });
 
 app.listen(port, () => {
