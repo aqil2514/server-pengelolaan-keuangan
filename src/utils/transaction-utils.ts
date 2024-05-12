@@ -1,23 +1,27 @@
-import { ZodError, z } from "zod";
+import { ZodError, ZodIssue, isValid, z } from "zod";
 import { TransactionFormData } from "../@types/Transaction";
 
 const TransactionFormDataSchema = z.object({
-  typeTransaction: z.enum(["Pemasukan", "Pengeluaran"]),
-  totalTransaction: z.number(),
-  dateTransaction: z.string(),
-  categoryTransaction: z.string(),
-  assetsTransaction: z.string(),
-  noteTransaction: z.string(),
-  price: z.number(),
+  typeTransaction: z.enum(["Pemasukan", "Pengeluaran"], {
+    message: "Tipe transaksi tidak diizinkan",
+  }),
+  totalTransaction: z.number({ message: "Total transaksi harus berupa angka" }),
+  dateTransaction: z.string({ message: "Transaksi harus berupa tanggal" }),
+  categoryTransaction: z.string().min(1, "Category transaksi belum diisi"),
+  assetsTransaction: z.string().min(1, "Aset transaksi belum diisi"),
+  noteTransaction: z.string().min(1, "Catatan transaksi belum diisi"),
+  price: z.number({ message: "Harga harus berupa angka" }),
 });
-
-// TODO :  Fix ini 
 
 export function validateTransaction(formData: TransactionFormData) {
   try {
-    TransactionFormDataSchema.parse(FormData);
+    TransactionFormDataSchema.parse(formData);
     return { isValid: true, errors: null };
   } catch (error) {
-    return { isValid: false, error };
+    if (error instanceof ZodError) {
+      return { isValid: false, error };
+    }
   }
+
+  return { isValid: false };
 }

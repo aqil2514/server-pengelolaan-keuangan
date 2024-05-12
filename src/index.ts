@@ -3,7 +3,11 @@ import dotenv from "dotenv";
 import supabase from "./lib/db";
 import { clientEndpoint } from "./lib/data";
 import bodyParser from "body-parser";
-import { TransactionFormData } from "./@types/Transaction";
+import {
+  TransactionBodyType,
+  TransactionFormData,
+  TransactionType,
+} from "./@types/Transaction";
 import { validateTransaction } from "./utils/transaction-utils";
 
 dotenv.config();
@@ -20,65 +24,61 @@ app.get("/transaction", async (req: Request, res: Response) => {
   res.json(data.data);
 });
 
-app.post("/transaction/add", async(req:Request, res:Response) => {
+app.post("/transaction/add", async (req: Request, res: Response) => {
+  const formData: TransactionFormData = req.body;
+  const {
+    dateTransaction,
+    noteTransaction,
+    typeTransaction,
+    totalTransaction,
+    assetsTransaction,
+    categoryTransaction,
+  } = formData;
 
-  const formData:TransactionFormData = req.body;
+  const validation = validateTransaction(formData);
 
-  const test = validateTransaction(formData);
+  if (!validation.isValid)
+    return res.status(422).json({ error: validation.error });
 
-  console.log(test)
+  const dataBody: TransactionBodyType = {
+    asset: String(assetsTransaction),
+    category: String(categoryTransaction),
+    item: String(noteTransaction),
+    price:
+      typeTransaction === "Pemasukan"
+        ? Number(totalTransaction)
+        : Number(totalTransaction) * -1,
+  };
 
-  // console.log(formData)
+  const finalData: TransactionType = {
+    header: String(dateTransaction),
+    body: [],
+  };
 
-  return res.redirect(`${clientEndpoint.github}/transaction/add`)
-  
-  // const errors: Transaction.ErrorsTransaction = {} as Transaction.ErrorsTransaction;
-  // console.log(typeTransaction)
+  const dataDb = await supabase.from("transaction").select("*");
+  const transaction = dataDb.data as unknown as TransactionType[];
 
-  // if (isNaN(dateTransaction.getTime())) {
-  //   errors.date = "Tanggal belum diisi";
-  // }
+  const sameData = transaction.find(
+    (p) => new Date(p.header).toISOString() === String(dateTransaction)
+  );
 
-  // if (dateTransaction > new Date()) {
-  //   errors.date = "Tanggal transaksi tidak boleh dari masa depan";
-  // }
+  if (sameData) {
+    sameData.body.push(dataBody);
 
-  // if (typeTransaction === "null") {
-  //   errors.type = "Tipe transaksi belum dipilih";
-  // }
+    const res = await supabase
+      .from("transaction")
+      .update({ body: sameData.body })
+      .eq("header", dateTransaction);
+    console.log(res);
+    console.log(dateTransaction)
+  }
 
-  // if (isNaN(totalTransaction)) {
-  //   errors.total = "Total Transaksi harus berupa angka";
-  // }
-
-  // if (totalTransaction === 0) {
-  //   errors.total = "Total transaksi tidak boleh 0";
-  // }
-
-  // const sameDate = oldData.find((d) => {
-  //   return d.header === dateTransaction.toString();
-  // });
-
-  // if (Object.keys(errors).length > 0) {
-  //   return res.json({ errors });
-  // }
-
-  // const dataBody: Transaction.TransactionBodyType = {
-  //   asset: assetsTransaction,
-  //   category: categoryTransaction,
-  //   item: noteTransaction,
-  //   price,
-  // };
-
-  // const finalData: Transaction.TransactionType = {
-  //   header: String(dateTransaction),
-  //   body: [],
-  // };
+  return res.status(200).json(validation);
 
   // return res.json({url: "/transaction"});
-  
+
   // res.json({msg:"OK"})
-})
+});
 
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
