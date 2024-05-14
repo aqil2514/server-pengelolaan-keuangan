@@ -65,13 +65,21 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
   if (sameData) {
     sameData.body.push(dataBody);
 
-    const res = await supabase
+    const response = await supabase
       .from("transaction")
       .update({ body: sameData.body })
-      .eq("header", dateTransaction);
-    console.log(res);
-    console.log(dateTransaction)
+      .eq("header", dateTransaction)
+      .select();
+
+    if (response.error) {
+      return res.status(response.status).json({ message: response.statusText });
+    }
+
+    return res.status(200).json({ message: "Data berhasil ditambahkan" });
   }
+
+  finalData.body.push(dataBody)
+  await supabase.from("transaction").insert(finalData);
 
   return res.status(200).json(validation);
 
