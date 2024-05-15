@@ -9,6 +9,7 @@ import {
   TransactionType,
 } from "./@types/Transaction";
 import { validateTransaction } from "./utils/transaction-utils";
+import cors from "cors";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ const port = process.env.PORT;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
 app.get("/transaction", async (req: Request, res: Response) => {
   let data = await supabase.from("transaction").select("*");
@@ -78,7 +80,7 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
     return res.status(200).json({ message: "Data berhasil ditambahkan" });
   }
 
-  finalData.body.push(dataBody)
+  finalData.body.push(dataBody);
   await supabase.from("transaction").insert(finalData);
 
   return res.status(200).json(validation);
@@ -86,6 +88,21 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
   // return res.json({url: "/transaction"});
 
   // res.json({msg:"OK"})
+});
+
+app.get("/transaction/detail/:header", async (req: Request, res: Response) => {
+  const { header } = req.params;
+
+  const dbRes = await supabase
+    .from("transaction")
+    .select("*")
+    .eq("header", header);
+
+  if (dbRes.error) {
+    return res.status(dbRes.status).json({ msg: dbRes.statusText });
+  }
+
+  return res.status(200).json({ msg: "Sukses", data: dbRes.data });
 });
 
 app.listen(port, () => {
