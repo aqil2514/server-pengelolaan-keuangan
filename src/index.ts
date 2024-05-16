@@ -105,6 +105,31 @@ app.get("/transaction/detail/:header", async (req: Request, res: Response) => {
   return res.status(200).json({ msg: "Sukses", data: dbRes.data });
 });
 
+app.delete("/transaction", async (req: Request, res: Response) => {
+  const body = req.body;
+  const db = await supabase
+    .from("transaction")
+    .select("*")
+    .eq("header", body.header);
+
+  if (db.error) return res.status(db.status).json({ message: db.statusText });
+
+  const dbData: TransactionType = db.data[0];
+
+  if (dbData.body.length === 1) {
+    await supabase.from("transaction").delete().eq("header", dbData.header);
+  } else {
+    dbData.body.splice(body.index, 1);
+
+    await supabase
+      .from("transaction")
+      .update({ body: dbData.body })
+      .eq("header", dbData.header);
+  }
+
+  return res.status(200).json({ message: "Data berhasil dihapus" });
+});
+
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
