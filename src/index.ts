@@ -94,6 +94,7 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
 app.put("/transaction", async (req: Request, res: Response) => {
   const formData: TransactionFormData = req.body;
   const {
+    idTransaction,
     uidTransaction,
     dateTransaction,
     noteTransaction,
@@ -127,7 +128,7 @@ app.put("/transaction", async (req: Request, res: Response) => {
   const dbRes = await supabase
     .from("transaction")
     .select("*")
-    .eq("header", finalData.header);
+    .eq("id", idTransaction);
   const isNullData = !dbRes.data || dbRes.data.length === 0;
   finalData.body.push(dataBody);
 
@@ -137,10 +138,55 @@ app.put("/transaction", async (req: Request, res: Response) => {
   const indexData = dbData.body.findIndex((item) => item.uid === dataBody.uid);
   dbData.body[indexData] = dataBody;
 
-  await supabase
-    .from("transaction")
-    .update({ body: dbData.body })
-    .eq("header", finalData.header);
+  // Pengecekan tanggal
+  if (String(dateTransaction) !== dbData.header) {
+    const checkData = await supabase
+      .from("transaction")
+      .select("*")
+      .eq("header", dateTransaction);
+
+    switch (checkData.data && checkData.data.length) {
+      // Kasus 1 = Bagaimana jika tanggal data baru belum ada di database?
+      case 0:
+        const oldData1 = dbData.body.filter((d) => d.uid !== uidTransaction);
+        const newData = dbData.body.filter((d) => d.uid === uidTransaction);
+        finalData.body = newData;
+
+        await supabase
+          .from("transaction")
+          .update({ body: oldData1 })
+          .eq("id", idTransaction);
+
+        await supabase.from("transaction").insert(finalData);
+        return res
+          .status(200)
+          .json({ message: "Data Transaksi berhasil diubah" });
+
+      default:
+        // Kasus 2 = Bagaimana jika tanggal data baru sudah ada di database?
+        const oldData2 = dbData.body.filter((d) => d.uid !== uidTransaction);
+        const newData2 = dbData.body.filter((d) => d.uid === uidTransaction);
+        //@ts-ignore
+        checkData.data.body.push(newData2);
+
+        // FIX INI NANTI. BELUM KELAR
+
+        // await supabase
+        //   .from("transaction")
+        //   .update({ body: oldData2 })
+        //   .eq("id", idTransaction);
+
+        // await supabase
+        //   .from("transaction")
+        //   .update({ body: newData2 })
+        //   .eq("header", dateTransaction);
+    }
+  }
+
+  // await supabase
+  //   .from("transaction")
+  //   .update({ body: dbData.body })
+  //   .eq("id", idTransaction);
   return res.json({ message: "Data transaksi berhasil diubah" });
 });
 
@@ -161,10 +207,7 @@ app.get("/transaction/detail/:header", async (req: Request, res: Response) => {
 
 app.delete("/transaction", async (req: Request, res: Response) => {
   const body = req.body;
-  const db = await supabase
-    .from("transaction")
-    .select("*")
-    .eq("header", body.header);
+  const db = await supabase.from("transaction").select("*").eq("id", body.id);
 
   if (db.error) return res.status(db.status).json({ message: db.statusText });
 
@@ -172,13 +215,12 @@ app.delete("/transaction", async (req: Request, res: Response) => {
   const newData = dbData.body.filter((d) => d.uid !== body.uid);
 
   if (dbData.body.length === 1) {
-    await supabase.from("transaction").delete().eq("header", dbData.header);
+    await supabase.from("transaction").delete().eq("id", dbData.id);
   } else {
-
     await supabase
       .from("transaction")
       .update({ body: newData })
-      .eq("header", dbData.header);
+      .eq("id", dbData.id);
   }
 
   return res.status(200).json({ message: "Data berhasil dihapus" });
