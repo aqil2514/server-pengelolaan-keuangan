@@ -10,7 +10,6 @@ const TransactionFormDataSchema = z.object({
   categoryTransaction: z.string().min(1, "Category transaksi belum diisi"),
   assetsTransaction: z.string().min(1, "Aset transaksi belum diisi"),
   noteTransaction: z.string().min(1, "Catatan transaksi belum diisi"),
-  price: z.number({ message: "Harga harus berupa angka" }),
 });
 
 export function validateTransaction(formData: TransactionFormData) {

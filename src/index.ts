@@ -43,6 +43,7 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
     return res.status(422).json({ error: validation.error });
 
   const dataBody: TransactionBodyType = {
+    uid: crypto.randomUUID(),
     asset: String(assetsTransaction),
     category: String(categoryTransaction),
     item: String(noteTransaction),
@@ -90,6 +91,57 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
   // res.json({msg:"OK"})
 });
 
+app.put("/transaction", async (req: Request, res: Response) => {
+  const formData: TransactionFormData = req.body;
+  const {
+    uidTransaction,
+    dateTransaction,
+    noteTransaction,
+    typeTransaction,
+    totalTransaction,
+    assetsTransaction,
+    categoryTransaction,
+  } = formData;
+
+  const validation = validateTransaction(formData);
+
+  if (!validation.isValid)
+    return res.status(422).json({ error: validation.error });
+
+  const dataBody: TransactionBodyType = {
+    uid: String(uidTransaction),
+    asset: String(assetsTransaction),
+    category: String(categoryTransaction),
+    item: String(noteTransaction),
+    price:
+      typeTransaction === "Pemasukan"
+        ? Number(totalTransaction)
+        : Number(totalTransaction),
+  };
+
+  const finalData: TransactionType = {
+    header: String(dateTransaction),
+    body: [],
+  };
+
+  const dbRes = await supabase
+    .from("transaction")
+    .select("*")
+    .eq("header", finalData.header);
+  const isNullData = !dbRes.data || dbRes.data.length === 0;
+  finalData.body.push(dataBody);
+
+  
+  if (isNullData)
+    return res.status(404).json({ message: "Data tidak ditemukan" });
+  const dbData: TransactionType = dbRes.data[0];
+  const indexData = dbData.body.findIndex((item) => item.uid === dataBody.uid);
+  dbData.body[indexData] = dataBody;
+
+  await supabase.from("transaction").update({body: dbData.body}).eq("header", finalData.header);
+  return res.json({ message: "Data transaksi berhasil diubah" });
+});
+
 app.get("/transaction/detail/:header", async (req: Request, res: Response) => {
   const { header } = req.params;
 
@@ -133,3 +185,4 @@ app.delete("/transaction", async (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
+

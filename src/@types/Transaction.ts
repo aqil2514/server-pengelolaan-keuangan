@@ -1,4 +1,5 @@
   export interface TransactionBodyType {
+    uid?: string;
     category: string;
     asset: string;
     item: string;
@@ -17,6 +18,7 @@
   }
 
   export interface TransactionFormData {
+    uidTransaction: string;
     typeTransaction: 'Pemasukan' | 'Pengeluaran'; // Tipe transaksi harus salah satu dari kedua nilai ini
     totalTransaction: number | null; // Total transaksi, diasumsikan sebagai bilangan bulat
     dateTransaction: Date | null; // Tanggal transaksi, bisa null jika tidak disertakan
