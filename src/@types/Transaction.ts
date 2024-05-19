@@ -7,6 +7,7 @@
   }
 
   export interface TransactionType {
+    id?: string;
     header: string;
     body: TransactionBodyType[];
   }
@@ -18,6 +19,7 @@
   }
 
   export interface TransactionFormData {
+    id: string;
     uidTransaction: string;
     typeTransaction: 'Pemasukan' | 'Pengeluaran'; // Tipe transaksi harus salah satu dari kedua nilai ini
     totalTransaction: number | null; // Total transaksi, diasumsikan sebagai bilangan bulat

@@ -131,14 +131,16 @@ app.put("/transaction", async (req: Request, res: Response) => {
   const isNullData = !dbRes.data || dbRes.data.length === 0;
   finalData.body.push(dataBody);
 
-  
   if (isNullData)
     return res.status(404).json({ message: "Data tidak ditemukan" });
   const dbData: TransactionType = dbRes.data[0];
   const indexData = dbData.body.findIndex((item) => item.uid === dataBody.uid);
   dbData.body[indexData] = dataBody;
 
-  await supabase.from("transaction").update({body: dbData.body}).eq("header", finalData.header);
+  await supabase
+    .from("transaction")
+    .update({ body: dbData.body })
+    .eq("header", finalData.header);
   return res.json({ message: "Data transaksi berhasil diubah" });
 });
 
@@ -167,15 +169,15 @@ app.delete("/transaction", async (req: Request, res: Response) => {
   if (db.error) return res.status(db.status).json({ message: db.statusText });
 
   const dbData: TransactionType = db.data[0];
+  const newData = dbData.body.filter((d) => d.uid !== body.uid);
 
   if (dbData.body.length === 1) {
     await supabase.from("transaction").delete().eq("header", dbData.header);
   } else {
-    dbData.body.splice(body.index, 1);
 
     await supabase
       .from("transaction")
-      .update({ body: dbData.body })
+      .update({ body: newData })
       .eq("header", dbData.header);
   }
 
@@ -185,4 +187,3 @@ app.delete("/transaction", async (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
-
