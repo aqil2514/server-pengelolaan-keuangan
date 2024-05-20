@@ -20,13 +20,15 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
-app.get("/transaction", async (req: Request, res: Response) => {
+app.get("/", (req, res) => res.send("Express on Vercel"));
+
+app.get("/api/transaction", async (req: Request, res: Response) => {
   let data = await supabase.from("transaction").select("*");
 
   res.json(data.data);
 });
 
-app.post("/transaction/add", async (req: Request, res: Response) => {
+app.post("/api/transaction/add", async (req: Request, res: Response) => {
   const formData: TransactionFormData = req.body;
   const {
     dateTransaction,
@@ -91,7 +93,7 @@ app.post("/transaction/add", async (req: Request, res: Response) => {
   // res.json({msg:"OK"})
 });
 
-app.put("/transaction", async (req: Request, res: Response) => {
+app.put("/api/transaction", async (req: Request, res: Response) => {
   const formData: TransactionFormData = req.body;
   const {
     idTransaction,
@@ -208,7 +210,7 @@ app.put("/transaction", async (req: Request, res: Response) => {
   return res.json({ message: "Data transaksi berhasil diubah" });
 });
 
-app.get("/transaction/detail/:header", async (req: Request, res: Response) => {
+app.get("/api/transaction/detail/:header", async (req: Request, res: Response) => {
   const { header } = req.params;
 
   const dbRes = await supabase
@@ -223,7 +225,7 @@ app.get("/transaction/detail/:header", async (req: Request, res: Response) => {
   return res.status(200).json({ msg: "Sukses", data: dbRes.data });
 });
 
-app.delete("/transaction", async (req: Request, res: Response) => {
+app.delete("/api/transaction", async (req: Request, res: Response) => {
   const body = req.body;
   const db = await supabase.from("transaction").select("*").eq("id", body.id);
 
@@ -247,3 +249,5 @@ app.delete("/transaction", async (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
+
+export default app;
