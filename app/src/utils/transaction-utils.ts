@@ -1,5 +1,5 @@
 import { ZodError, ZodIssue, isValid, z } from "zod";
-import { TransactionFormData } from "../@types/Transaction";
+import { TransactionFormData } from "../../@types/Transaction";
 
 const TransactionFormDataSchema = z.object({
   typeTransaction: z.enum(["Pemasukan", "Pengeluaran"], {

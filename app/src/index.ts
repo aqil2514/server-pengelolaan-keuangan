@@ -7,7 +7,7 @@ import {
   TransactionBodyType,
   TransactionFormData,
   TransactionType,
-} from "./@types/Transaction";
+} from "../@types/Transaction";
 import { validateTransaction } from "./utils/transaction-utils";
 import cors from "cors";
 
@@ -145,19 +145,24 @@ app.put("/transaction", async (req: Request, res: Response) => {
       .select("*")
       .eq("header", dateTransaction);
 
-    const dataIsThere = checkData.data && checkData.data.length
+    const dataIsThere = checkData.data && checkData.data.length;
 
     switch (dataIsThere) {
       // Kasus 1 = Bagaimana jika tanggal data baru belum ada di database?
       case 0:
+        console.log("Kasus 1 Dieksekusi");
         const oldData1 = dbData.body.filter((d) => d.uid !== uidTransaction);
         const newData = dbData.body.filter((d) => d.uid === uidTransaction);
         finalData.body = newData;
 
-        await supabase
-          .from("transaction")
-          .update({ body: oldData1 })
-          .eq("id", idTransaction);
+        if (oldData1.length === 0) {
+          await supabase.from("transaction").delete().eq("id", idTransaction);
+        } else {
+          await supabase
+            .from("transaction")
+            .update({ body: oldData1 })
+            .eq("id", idTransaction);
+        }
 
         if (dbRes.data[0].body.length === 0) {
           await supabase.from("transaction").delete().eq("id", idTransaction);
@@ -169,6 +174,7 @@ app.put("/transaction", async (req: Request, res: Response) => {
           .json({ message: "Data Transaksi berhasil diubah" });
 
       default:
+        console.log("Kasus 2 Dieksekusi");
         // Kasus 2 = Bagaimana jika tanggal data baru sudah ada di database?
         const selectedOldData2 = dbData.body.find(
           (d) => d.uid === uidTransaction
