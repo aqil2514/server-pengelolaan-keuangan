@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npx tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon app/src/index.ts",
+    "dev": "nodemon src/app/index.ts",
     "vercel-build": "echo hello"
   },
   "keywords": [],
