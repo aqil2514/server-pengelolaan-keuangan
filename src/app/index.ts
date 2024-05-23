@@ -10,6 +10,7 @@ import {
 } from "../@types/Transaction";
 import { validateTransaction } from "./utils/transaction-utils";
 import cors from "cors";
+import accountRoute from "./router/account";
 
 dotenv.config();
 
@@ -19,6 +20,10 @@ const port = process.env.PORT;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
+
+const account = accountRoute;
+
+app.use('/api/account', account);
 
 app.get("/", (req, res) => res.send("Express on Vercel"));
 
