@@ -17,6 +17,12 @@ export interface AccountPrivacy {
   securityAnswer: string;
 }
 
+export interface AccountData{
+  userId: string;
+  createdAt?: string;
+  user_transaction: string;
+}
+
 export interface AccountDB extends Account {
   uid?: string;
   config: AccountConfig;
