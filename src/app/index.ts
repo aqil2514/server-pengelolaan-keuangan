@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import supabase from "./lib/db";
-import { clientEndpoint } from "./lib/data";
+// import { clientEndpoint } from "./lib/data";
 import bodyParser from "body-parser";
 import {
   TransactionBodyType,
@@ -11,6 +11,7 @@ import {
 import { validateTransaction } from "./utils/transaction-utils";
 import cors from "cors";
 import accountRoute from "./router/account";
+import CryptoJS from "crypto-js";
 
 dotenv.config();
 
@@ -42,9 +43,12 @@ app.post("/api/transaction/add", async (req: Request, res: Response) => {
     totalTransaction,
     assetsTransaction,
     categoryTransaction,
+    userId,
   } = formData;
 
   const validation = validateTransaction(formData);
+
+  console.log(userId)
 
   if (!validation.isValid)
     return res.status(422).json({ error: validation.error });
@@ -65,37 +69,43 @@ app.post("/api/transaction/add", async (req: Request, res: Response) => {
     body: [],
   };
 
-  const dataDb = await supabase.from("transaction").select("*");
-  const transaction = dataDb.data as unknown as TransactionType[];
+  const encryptData = CryptoJS.AES.encrypt(JSON.stringify(finalData), "secret-key")
 
-  const sameData = transaction.find(
-    (p) => new Date(p.header).toISOString() === String(dateTransaction)
-  );
+  console.log(encryptData.toString());
 
-  if (sameData) {
-    sameData.body.push(dataBody);
+  const decryptData = CryptoJS.AES.decrypt(encryptData.toString(), "secret-key");
+  console.log(JSON.parse(decryptData.toString(CryptoJS.enc.Utf8)))
 
-    const response = await supabase
-      .from("transaction")
-      .update({ body: sameData.body })
-      .eq("header", dateTransaction)
-      .select();
+  // const dataDb = await supabase.from("transaction").select("*");
+  // const transaction = dataDb.data as unknown as TransactionType[];
 
-    if (response.error) {
-      return res.status(response.status).json({ message: response.statusText });
-    }
+  // const sameData = transaction.find(
+  //   (p) => new Date(p.header).toISOString() === String(dateTransaction)
+  // );
 
-    return res.status(200).json({ message: "Data berhasil ditambahkan" });
-  }
+  // if (sameData) {
+  //   sameData.body.push(dataBody);
 
-  finalData.body.push(dataBody);
-  await supabase.from("transaction").insert(finalData);
+  //   const response = await supabase
+  //     .from("transaction")
+  //     .update({ body: sameData.body })
+  //     .eq("header", dateTransaction)
+  //     .select();
+
+  //   if (response.error) {
+  //     return res.status(response.status).json({ message: response.statusText });
+  //   }
+
+  //   return res.status(200).json({ message: "Data berhasil ditambahkan" });
+  // }
+
+  // finalData.body.push(dataBody);
+  // await supabase.from("transaction").insert(finalData);
 
   return res.status(200).json(validation);
 
-  // return res.json({url: "/transaction"});
+  return res.json({url: "/transaction"});
 
-  // res.json({msg:"OK"})
 });
 
 app.put("/api/transaction", async (req: Request, res: Response) => {

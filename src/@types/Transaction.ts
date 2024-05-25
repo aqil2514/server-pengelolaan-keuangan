@@ -28,4 +28,5 @@
     assetsTransaction: string | null; // Aset transaksi, diambil dari formulir
     noteTransaction: string | null; // Catatan transaksi, diambil dari formulir
     price: number | null; // Harga atau jumlah transaksi, diambil dari formulir
+    userId: string;
   }
