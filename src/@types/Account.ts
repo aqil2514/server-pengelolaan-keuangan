@@ -4,6 +4,8 @@ export interface Account {
   password: string;
 }
 
+export type AccountUser = Omit<AccountDB, "password">;
+
 export interface AccountConfig {
   currency: CurrencyType;
   language: LanguageType;
@@ -16,7 +18,7 @@ export interface AccountPrivacy {
 }
 
 export interface AccountDB extends Account {
-  id?: string;
+  uid?: string;
   config: AccountConfig;
   privacy: AccountPrivacy;
 }

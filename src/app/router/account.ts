@@ -4,6 +4,7 @@ import {
   AccountDB,
   AccountRegister,
   AccountResponse,
+  AccountUser,
 } from "../../@types/Account";
 import { validatePassword, validateRegistration } from "../utils/account-utils";
 import supabase from "../lib/db";
@@ -53,7 +54,23 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
       {
         success: false,
         error: true,
-        message: `Akun dengan username ${data.username} sudah ada di database`,
+        message: `Akun dengan username ${data.username} sudah terdaftar. Silahkan login`,
+        path: "account-found",
+      },
+    ];
+    return res.status(422).json({ result });
+  }
+
+  const isThereEmail = await supabase
+    .from("user")
+    .select("*")
+    .eq("email", data.email);
+  if (isThereEmail.data?.length !== 0) {
+    const result: AccountResponse[] = [
+      {
+        success: false,
+        error: true,
+        message: `Akun dengan email ${data.email} sudah terdaftar. Silahkan login`,
         path: "account-found",
       },
     ];
@@ -63,7 +80,7 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
 
   const finalData: AccountDB = {
-    username: data.username,
+    username: data.username.toLowerCase(),
     password: hashedPassword,
     email: data.email,
     config: {
@@ -80,6 +97,31 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   await supabase.from("user").insert(finalData);
 
   return res.status(200).json({ sucess: true });
+});
+
+accountRoute.post("/login", async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  const userDb = await supabase.from("user").select("*").eq("email", email);
+  if (userDb.data && userDb.data?.length === 0)
+    return res
+      .status(404)
+      .json({ success: false, message: "Akun tidak ditemukan" });
+  const userAccount: AccountDB = userDb.data![0];
+
+  const isCompared = await bcrypt.compare(password, userAccount.password);
+  if (!isCompared)
+    return res.status(401).json({ success: false, message: "Password salah" });
+
+  const user: AccountUser = {
+    uid: userAccount.uid,
+    username: userAccount.username,
+    email: userAccount.email,
+    privacy: userAccount.privacy,
+    config: userAccount.config,
+  };
+
+  return res.status(200).json({ user });
 });
 
 export default accountRoute;
