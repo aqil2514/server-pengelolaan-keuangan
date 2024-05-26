@@ -6,6 +6,7 @@ import {
 import supabase from "../lib/db";
 import express, { Request, Response } from "express";
 import {
+  editTransactionData,
   encryptTransactionData,
   getTransactionData,
   transactionAllocation,
@@ -144,117 +145,136 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
 });
 
 transactionRoute.put("/", async (req: Request, res: Response) => {
+  const userId = req.headers["user-id"] as string;
+
   const formData: TransactionFormData = req.body;
-  const {
-    idTransaction,
-    uidTransaction,
-    dateTransaction,
-    noteTransaction,
-    typeTransaction,
-    totalTransaction,
-    assetsTransaction,
-    categoryTransaction,
-  } = formData;
+
+  const user = await getUser(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User tidak ditemukan" });
+  }
+
+  const userData = await getUserData(String(user.uid));
+  if (!userData) {
+    return res.status(404).json({ message: "Data pengguna tidak ditemukan" });
+  }
 
   const validation = validateTransaction(formData);
 
   if (!validation.isValid)
     return res.status(422).json({ error: validation.error });
 
-  const dataBody: TransactionBodyType = {
-    uid: String(uidTransaction),
-    asset: String(assetsTransaction),
-    category: String(categoryTransaction),
-    item: String(noteTransaction),
-    price:
-      typeTransaction === "Pemasukan"
-        ? Number(totalTransaction)
-        : Number(totalTransaction),
-  };
+  const transactions = getTransactionData(userData.user_transaction, userId);
 
-  const finalData: TransactionType = {
-    header: String(dateTransaction),
-    body: [],
-  };
+  const resultEdit = editTransactionData(transactions, formData);
 
-  const dbRes = await supabase
-    .from("transaction")
-    .select("*")
-    .eq("id", idTransaction);
-  const isNullData = !dbRes.data || dbRes.data.length === 0;
-  finalData.body.push(dataBody);
-
-  if (isNullData)
-    return res.status(404).json({ message: "Data tidak ditemukan" });
-  const dbData: TransactionType = dbRes.data[0];
-  const indexData = dbData.body.findIndex((item) => item.uid === dataBody.uid);
-  dbData.body[indexData] = dataBody;
-
-  // Pengecekan tanggal
-  if (String(dateTransaction) !== dbData.header) {
-    const checkData = await supabase
-      .from("transaction")
-      .select("*")
-      .eq("header", dateTransaction);
-
-    const dataIsThere = checkData.data && checkData.data.length;
-
-    switch (dataIsThere) {
-      // Kasus 1 = Bagaimana jika tanggal data baru belum ada di database?
-      case 0:
-        const oldData1 = dbData.body.filter((d) => d.uid !== uidTransaction);
-        const newData = dbData.body.filter((d) => d.uid === uidTransaction);
-        finalData.body = newData;
-
-        if (oldData1.length === 0) {
-          await supabase.from("transaction").delete().eq("id", idTransaction);
-        } else {
-          await supabase
-            .from("transaction")
-            .update({ body: oldData1 })
-            .eq("id", idTransaction);
-        }
-
-        if (dbRes.data[0].body.length === 0) {
-          await supabase.from("transaction").delete().eq("id", idTransaction);
-        }
-
-        await supabase.from("transaction").insert(finalData);
-        return res
-          .status(200)
-          .json({ message: "Data Transaksi berhasil diubah" });
-
-      default:
-        // Kasus 2 = Bagaimana jika tanggal data baru sudah ada di database?
-        const selectedOldData2 = dbData.body.find(
-          (d) => d.uid === uidTransaction
-        );
-        const oldData2 = dbData.body.filter((d) => d.uid !== uidTransaction);
-        const newData2 = checkData.data![0].body;
-
-        newData2.push(selectedOldData2);
-        dbData.body = oldData2;
-
-        await supabase
-          .from("transaction")
-          .update({ body: newData2 })
-          .eq("header", dateTransaction);
-
-        if (dbRes.data[0].body.length === 0) {
-          await supabase.from("transaction").delete().eq("id", idTransaction);
-        } else {
-          await supabase
-            .from("transaction")
-            .update({ body: oldData2 })
-            .eq("header", dateTransaction);
-        }
-    }
-  }
+  const encryptData = encryptTransactionData(
+    JSON.stringify(resultEdit),
+    userId
+  );
 
   await supabase
-    .from("transaction")
-    .update({ body: dbData.body })
-    .eq("id", idTransaction);
+    .from("user_data")
+    .update({ user_transaction: encryptData })
+    .eq("userId", userId);
+
+  // transactions.find((d) => d.id === formData.idTransaction)!.body = resultEdit.body;
+
+  // const dataBody: TransactionBodyType = {
+  //   uid: String(uidTransaction),
+  //   asset: String(assetsTransaction),
+  //   category: String(categoryTransaction),
+  //   item: String(noteTransaction),
+  //   price:
+  //     typeTransaction === "Pemasukan"
+  //       ? Number(totalTransaction)
+  //       : Number(totalTransaction),
+  // };
+
+  // const finalData: TransactionType = {
+  //   header: String(dateTransaction),
+  //   body: [],
+  // };
+
+  // const dbRes = await supabase
+  //   .from("transaction")
+  //   .select("*")
+  //   .eq("id", idTransaction);
+  // const isNullData = !dbRes.data || dbRes.data.length === 0;
+  // finalData.body.push(dataBody);
+
+  // if (isNullData)
+  //   return res.status(404).json({ message: "Data tidak ditemukan" });
+  // const dbData: TransactionType = dbRes.data[0];
+  // const indexData = dbData.body.findIndex((item) => item.uid === dataBody.uid);
+  // dbData.body[indexData] = dataBody;
+
+  // // Pengecekan tanggal
+  // if (String(dateTransaction) !== dbData.header) {
+  //   const checkData = await supabase
+  //     .from("transaction")
+  //     .select("*")
+  //     .eq("header", dateTransaction);
+
+  //   const dataIsThere = checkData.data && checkData.data.length;
+
+  //   switch (dataIsThere) {
+  //     // Kasus 1 = Bagaimana jika tanggal data baru belum ada di database?
+  //     case 0:
+  //       const oldData1 = dbData.body.filter((d) => d.uid !== uidTransaction);
+  //       const newData = dbData.body.filter((d) => d.uid === uidTransaction);
+  //       finalData.body = newData;
+
+  //       if (oldData1.length === 0) {
+  //         await supabase.from("transaction").delete().eq("id", idTransaction);
+  //       } else {
+  //         await supabase
+  //           .from("transaction")
+  //           .update({ body: oldData1 })
+  //           .eq("id", idTransaction);
+  //       }
+
+  //       if (dbRes.data[0].body.length === 0) {
+  //         await supabase.from("transaction").delete().eq("id", idTransaction);
+  //       }
+
+  //       await supabase.from("transaction").insert(finalData);
+  //       return res
+  //         .status(200)
+  //         .json({ message: "Data Transaksi berhasil diubah" });
+
+  //     default:
+  //       // Kasus 2 = Bagaimana jika tanggal data baru sudah ada di database?
+  //       const selectedOldData2 = dbData.body.find(
+  //         (d) => d.uid === uidTransaction
+  //       );
+  //       const oldData2 = dbData.body.filter((d) => d.uid !== uidTransaction);
+  //       const newData2 = checkData.data![0].body;
+
+  //       newData2.push(selectedOldData2);
+  //       dbData.body = oldData2;
+
+  //       await supabase
+  //         .from("transaction")
+  //         .update({ body: newData2 })
+  //         .eq("header", dateTransaction);
+
+  //       if (dbRes.data[0].body.length === 0) {
+  //         await supabase.from("transaction").delete().eq("id", idTransaction);
+  //       } else {
+  //         await supabase
+  //           .from("transaction")
+  //           .update({ body: oldData2 })
+  //           .eq("header", dateTransaction);
+  //       }
+  //   }
+  // }
+
+  // await supabase
+  //   .from("transaction")
+  //   .update({ body: dbData.body })
+  //   .eq("id", idTransaction);
+
   return res.json({ message: "Data transaksi berhasil diubah" });
 });
 
@@ -279,7 +299,7 @@ transactionRoute.delete("/", async (req: Request, res: Response) => {
 
   if (!body || typeof body.id !== "string" || typeof body.uid !== "string") {
     return res.status(400).json({ message: "Data permintaan tidak valid" });
-}
+  }
 
   const user = await getUser(userId);
   if (!user) {
@@ -289,7 +309,7 @@ transactionRoute.delete("/", async (req: Request, res: Response) => {
   const userData = await getUserData(String(user.uid));
   if (!userData) {
     return res.status(404).json({ message: "Data pengguna tidak ditemukan" });
-}
+  }
 
   const transactions = getTransactionData(
     String(userData.user_transaction),
@@ -297,7 +317,7 @@ transactionRoute.delete("/", async (req: Request, res: Response) => {
   );
   if (!transactions) {
     return res.status(404).json({ message: "Data transaksi tidak ditemukan" });
-}
+  }
 
   const filteredTransaction = transactions
     .find((d) => d.id === body.id)
