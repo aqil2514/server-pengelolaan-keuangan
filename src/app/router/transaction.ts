@@ -5,7 +5,12 @@ import {
 } from "../../@types/Transaction";
 import supabase from "../lib/db";
 import express, { Request, Response } from "express";
-import { validateTransaction } from "../utils/transaction-utils";
+import {
+  encryptTransactionData,
+  getTransactionData,
+  transactionAllocation,
+  validateTransaction,
+} from "../utils/transaction-utils";
 import CryptoJS from "crypto-js";
 import { getUser, getUserData } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
@@ -19,15 +24,16 @@ transactionRoute.get("/", async (req: Request, res: Response) => {
 
   if (!data) return res.status(200).json({ success: false, data: null });
 
-  const resDb: TransactionType[] = [];
+  let resDb: TransactionType[] = [];
 
-  const transactionData = JSON.parse(
+  const transactionData: TransactionType | TransactionType[] = JSON.parse(
     CryptoJS.AES.decrypt(data.user_transaction, userId).toString(
       CryptoJS.enc.Utf8
     )
   );
 
-  resDb.push(transactionData);
+  if (Array.isArray(transactionData)) resDb = transactionData;
+  else resDb.push(transactionData);
 
   res.status(200).json({ success: true, data: resDb });
 });
@@ -97,46 +103,44 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
     body: [],
   };
 
-  // const dataDb = await supabase.from("transaction").select("*");
-  // const transaction = dataDb.data as unknown as TransactionType[];
+  /**
+   * * Alokasi data Start
+   */
 
-  // const sameData = transaction.find(
-  //   (p) => new Date(p.header).toISOString() === String(dateTransaction)
-  // );
+  const allocation = await transactionAllocation(
+    userData,
+    dataBody,
+    String(dateTransaction)
+  );
+  if (allocation) {
+    const encryptData = CryptoJS.AES.encrypt(
+      JSON.stringify(allocation),
+      String(user.uid)
+    ).toString();
 
-  // if (sameData) {
-  //   sameData.body.push(dataBody);
+    await supabase
+      .from("user_data")
+      .update({ user_transaction: encryptData })
+      .eq("userId", user.uid);
+  } else {
+    finalData.body.push(dataBody);
 
-  //   const response = await supabase
-  //     .from("transaction")
-  //     .update({ body: sameData.body })
-  //     .eq("header", dateTransaction)
-  //     .select();
+    const encryptData = CryptoJS.AES.encrypt(
+      JSON.stringify(finalData),
+      String(user.uid)
+    ).toString();
 
-  //   if (response.error) {
-  //     return res.status(response.status).json({ message: response.statusText });
-  //   }
+    const userTransactionData: AccountData = {
+      userId: String(user.uid),
+      user_transaction: encryptData,
+    };
 
-  //   return res.status(200).json({ message: "Data berhasil ditambahkan" });
-  // }
-
-  finalData.body.push(dataBody);
-
-  const encryptData = CryptoJS.AES.encrypt(
-    JSON.stringify(finalData),
-    String(user.uid)
-  ).toString();
-
-  const userTransactionData: AccountData = {
-    userId: String(user.uid),
-    user_transaction: encryptData,
-  };
-
-  await supabase.from("user_data").insert(userTransactionData);
-
+    await supabase.from("user_data").insert(userTransactionData);
+  }
+  /**
+   * * Alokasi data End
+   */
   return res.status(200).json(validation);
-
-  return res.json({ url: "/transaction" });
 });
 
 transactionRoute.put("/", async (req: Request, res: Response) => {
@@ -198,7 +202,6 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
     switch (dataIsThere) {
       // Kasus 1 = Bagaimana jika tanggal data baru belum ada di database?
       case 0:
-        console.log("Kasus 1 Dieksekusi");
         const oldData1 = dbData.body.filter((d) => d.uid !== uidTransaction);
         const newData = dbData.body.filter((d) => d.uid === uidTransaction);
         finalData.body = newData;
@@ -222,7 +225,6 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
           .json({ message: "Data Transaksi berhasil diubah" });
 
       default:
-        console.log("Kasus 2 Dieksekusi");
         // Kasus 2 = Bagaimana jika tanggal data baru sudah ada di database?
         const selectedOldData2 = dbData.body.find(
           (d) => d.uid === uidTransaction
@@ -272,22 +274,50 @@ transactionRoute.get("/detail/:header", async (req: Request, res: Response) => {
 });
 
 transactionRoute.delete("/", async (req: Request, res: Response) => {
+  const userId = req.headers["user-id"] as string;
   const body = req.body;
-  const db = await supabase.from("transaction").select("*").eq("id", body.id);
 
-  if (db.error) return res.status(db.status).json({ message: db.statusText });
+  if (!body || typeof body.id !== "string" || typeof body.uid !== "string") {
+    return res.status(400).json({ message: "Data permintaan tidak valid" });
+}
 
-  const dbData: TransactionType = db.data[0];
-  const newData = dbData.body.filter((d) => d.uid !== body.uid);
-
-  if (dbData.body.length === 1) {
-    await supabase.from("transaction").delete().eq("id", dbData.id);
-  } else {
-    await supabase
-      .from("transaction")
-      .update({ body: newData })
-      .eq("id", dbData.id);
+  const user = await getUser(userId);
+  if (!user) {
+    return res.status(404).json({ message: "User tidak ditemukan" });
   }
+
+  const userData = await getUserData(String(user.uid));
+  if (!userData) {
+    return res.status(404).json({ message: "Data pengguna tidak ditemukan" });
+}
+
+  const transactions = getTransactionData(
+    String(userData.user_transaction),
+    String(userData.userId)
+  );
+  if (!transactions) {
+    return res.status(404).json({ message: "Data transaksi tidak ditemukan" });
+}
+
+  const filteredTransaction = transactions
+    .find((d) => d.id === body.id)
+    ?.body.filter((d) => d.uid !== body.uid);
+
+  if (filteredTransaction) {
+    transactions.find((d) => d.id === body.id)!.body = filteredTransaction;
+  }
+
+  const newTransaction = transactions.filter((d) => d.body.length !== 0);
+
+  const encryptData = encryptTransactionData(
+    JSON.stringify(newTransaction),
+    String(user.uid)
+  );
+
+  await supabase
+    .from("user_data")
+    .update({ user_transaction: encryptData })
+    .eq("userId", String(user.uid));
 
   return res.status(200).json({ message: "Data berhasil dihapus" });
 });

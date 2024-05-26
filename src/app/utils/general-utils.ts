@@ -22,7 +22,7 @@ export async function getUserData(id: string) {
   const res = await supabase.from("user_data").select("*").eq("userId", id);
   if (!res.data || res.data?.length === 0) return null;
 
-  const proc:AccountData = res.data[0];
+  const proc: AccountData = res.data[0];
 
   return proc;
 }
