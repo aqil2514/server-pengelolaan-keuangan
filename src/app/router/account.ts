@@ -15,16 +15,14 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
 
   const validation = validateRegistration(data);
   if (!validation.isValid) {
-    const result: AccountResponse[] = (validation.error?.issues || []).map(
-      (d) => {
-        return {
-          error: true,
-          success: false,
-          message: d.message,
-          path: String(d.path[0]),
-        };
-      }
-    );
+    const result: AccountResponse[] = (validation.errors || []).map((d) => {
+      return {
+        success: false,
+        message: d.message,
+        path: d.path,
+        notifMessage: d.notifMessage,
+      };
+    });
 
     return res.status(422).json({ result });
   }
@@ -37,9 +35,21 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
     const result: AccountResponse[] = [
       {
         success: false,
-        error: true,
         message: "Password tidak sama",
         path: "confirmPassword",
+        notifMessage:"Password tidak sama"
+      },
+    ];
+    return res.status(422).json({ result });
+  }
+
+  if(data.password.toLowerCase().trim() === data.username.toLowerCase().trim()){
+    const result: AccountResponse[] = [
+      {
+        success: false,
+        message: "Password tidak boleh sama dengan username",
+        path: "password",
+        notifMessage:"Password sama dengan username"
       },
     ];
     return res.status(422).json({ result });
@@ -48,14 +58,15 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   const isThere = await supabase
     .from("user")
     .select("*")
-    .eq("username", data.username);
+    .eq("username", data.username.toLowerCase().trim());
+
   if (isThere.data?.length !== 0) {
     const result: AccountResponse[] = [
       {
         success: false,
-        error: true,
         message: `Akun dengan username ${data.username} sudah terdaftar. Silahkan login`,
-        path: "account-found",
+        path: "password",
+        notifMessage: "Akun sudah ada",
       },
     ];
     return res.status(422).json({ result });
@@ -64,14 +75,14 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   const isThereEmail = await supabase
     .from("user")
     .select("*")
-    .eq("email", data.email);
+    .eq("email", data.email.toLowerCase().trim());
   if (isThereEmail.data?.length !== 0) {
     const result: AccountResponse[] = [
       {
         success: false,
-        error: true,
         message: `Akun dengan email ${data.email} sudah terdaftar. Silahkan login`,
         path: "account-found",
+        notifMessage: "Email sudah terdaftar",
       },
     ];
     return res.status(422).json({ result });
