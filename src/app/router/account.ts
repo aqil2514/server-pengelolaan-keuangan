@@ -65,7 +65,7 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
       {
         success: false,
         message: `Akun dengan username ${data.username} sudah terdaftar. Silahkan login`,
-        path: "password",
+        path: "account-found",
         notifMessage: "Akun sudah ada",
       },
     ];
