@@ -15,6 +15,7 @@ import {
 import CryptoJS from "crypto-js";
 import { getUser, getUserData } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
+import { ErrorValidationResponse } from "../../@types/General";
 
 const transactionRoute = express.Router();
 
@@ -80,8 +81,36 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
   // Validasi transaksi
   const validation = validateTransaction(formData);
 
-  if (!validation.isValid)
-    return res.status(422).json({ error: validation.error });
+  if (!validation.isValid){
+    const errors = validation.error?.issues.map((e) => {
+      let notifMessage: ErrorValidationResponse["notifMessage"] = "";
+      const path = String(e.path[0]);
+
+      if (path === "typeTransaction")
+        notifMessage = "Tipe transaksi tidak valid";
+      else if (path === "totalTransaction")
+        notifMessage = "Nominal transaksi tidak valid";
+      else if (path === "dateTransaction")
+        notifMessage = "Tanggal transaksi tidak valid";
+      else if (path === "categoryTransaction")
+        notifMessage = "Kategori transaksi tidak valid";
+      else if (path === "assetsTransaction")
+        notifMessage = "Asset transaksi tidak valid";
+      else if (path === "noteTransaction")
+        notifMessage = "Item transaksi tidak valid";
+      const error: ErrorValidationResponse = {
+        message: e.message,
+        path: e.path[0] as string,
+        notifMessage,
+      };
+
+      return error;
+    });
+
+    if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
+
+    return res.status(422).json({ errors });
+  }
 
   /**
    * * Validation End
@@ -161,8 +190,36 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
 
   const validation = validateTransaction(formData);
 
-  if (!validation.isValid)
-    return res.status(422).json({ error: validation.error });
+  if (!validation.isValid) {
+    const errors = validation.error?.issues.map((e) => {
+      let notifMessage: ErrorValidationResponse["notifMessage"] = "";
+      const path = String(e.path[0]);
+
+      if (path === "typeTransaction")
+        notifMessage = "Tipe transaksi tidak valid";
+      else if (path === "totalTransaction")
+        notifMessage = "Nominal transaksi tidak valid";
+      else if (path === "dateTransaction")
+        notifMessage = "Tanggal transaksi tidak valid";
+      else if (path === "categoryTransaction")
+        notifMessage = "Kategori transaksi tidak valid";
+      else if (path === "assetsTransaction")
+        notifMessage = "Asset transaksi tidak valid";
+      else if (path === "noteTransaction")
+        notifMessage = "Item transaksi tidak valid";
+      const error: ErrorValidationResponse = {
+        message: e.message,
+        path: e.path[0] as string,
+        notifMessage,
+      };
+
+      return error;
+    });
+
+    if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
+
+    return res.status(422).json({ errors });
+  }
 
   const transactions = getTransactionData(userData.user_transaction, userId);
 

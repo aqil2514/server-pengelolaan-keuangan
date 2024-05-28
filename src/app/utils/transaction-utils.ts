@@ -154,13 +154,20 @@ const TransactionFormDataSchema = z.object({
     message: "Tipe transaksi tidak diizinkan",
   }),
   totalTransaction: z.number({ message: "Total transaksi harus berupa angka" }),
-  dateTransaction: z.string({ message: "Transaksi harus berupa tanggal" }),
+  dateTransaction: z
+    .date({
+      message: "Transaksi harus berupa tanggal",
+      invalid_type_error: "Tanggal harus diisi",
+    })
+    .max(new Date(), "Transaksi tidak boleh dari masa depan"),
   categoryTransaction: z.string().min(1, "Category transaksi belum diisi"),
   assetsTransaction: z.string().min(1, "Aset transaksi belum diisi"),
   noteTransaction: z.string().min(1, "Catatan transaksi belum diisi"),
 });
 
 export function validateTransaction(formData: TransactionFormData) {
+  formData.dateTransaction = new Date(String(formData.dateTransaction));
+
   try {
     TransactionFormDataSchema.parse(formData);
     return { isValid: true, errors: null };
