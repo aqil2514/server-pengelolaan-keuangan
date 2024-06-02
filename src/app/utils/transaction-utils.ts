@@ -134,6 +134,16 @@ export function editTransactionData(
   }
 }
 
+export const getDecryptedTransactionData = (
+  encryptedData: string,
+  uid: string
+): TransactionType[] => {
+  return JSON.parse(
+    CryptoJS.AES.decrypt(String(encryptedData), uid).toString(CryptoJS.enc.Utf8)
+  );
+};
+
+
 export function getTransactionData(transactionData: string, key: string) {
   const decryptData = CryptoJS.AES.decrypt(transactionData, key).toString(
     CryptoJS.enc.Utf8

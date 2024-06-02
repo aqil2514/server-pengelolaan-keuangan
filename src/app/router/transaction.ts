@@ -13,7 +13,11 @@ import {
   validateTransaction,
 } from "../utils/transaction-utils";
 import CryptoJS from "crypto-js";
-import { getUser, getUserData } from "../utils/general-utils";
+import {
+  getUser,
+  getUserData,
+  synchronizeUserData,
+} from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
 
@@ -24,12 +28,12 @@ transactionRoute.get("/", async (req: Request, res: Response) => {
 
   let data = await getUserData(userId);
 
-  if (!data?.user_transaction) return res.status(200).json({ success: false, data: null });
+  if (!data?.user_transaction)
+    return res.status(200).json({ success: false, data: null });
 
+  await synchronizeUserData(data, data.userId);
 
   let resDb: TransactionType[] = [];
-
-  // TODO: Buat error handling jikalau datanya masih kosong;
 
   const transactionData: TransactionType | TransactionType[] = JSON.parse(
     CryptoJS.AES.decrypt(data.user_transaction, userId).toString(
@@ -84,7 +88,7 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
   // Validasi transaksi
   const validation = validateTransaction(formData);
 
-  if (!validation.isValid){
+  if (!validation.isValid) {
     const errors = validation.error?.issues.map((e) => {
       let notifMessage: ErrorValidationResponse["notifMessage"] = "";
       const path = String(e.path[0]);
@@ -224,7 +228,10 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
     return res.status(422).json({ errors });
   }
 
-  const transactions = getTransactionData(String(userData.user_transaction), userId);
+  const transactions = getTransactionData(
+    String(userData.user_transaction),
+    userId
+  );
 
   const resultEdit = editTransactionData(transactions, formData);
 
