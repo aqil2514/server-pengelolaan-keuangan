@@ -24,7 +24,8 @@ transactionRoute.get("/", async (req: Request, res: Response) => {
 
   let data = await getUserData(userId);
 
-  if (!data) return res.status(200).json({ success: false, data: null });
+  if (!data?.user_transaction) return res.status(200).json({ success: false, data: null });
+
 
   let resDb: TransactionType[] = [];
 
@@ -223,7 +224,7 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
     return res.status(422).json({ errors });
   }
 
-  const transactions = getTransactionData(userData.user_transaction, userId);
+  const transactions = getTransactionData(String(userData.user_transaction), userId);
 
   const resultEdit = editTransactionData(transactions, formData);
 

@@ -1,17 +1,16 @@
 import express from "express";
 import supabase from "../lib/db";
 import CryptoJS from "crypto-js";
-import { UserDataDB } from "../../@types/Account";
 import { AssetsData } from "../../@types/assets";
+import { getUserData } from "../utils/general-utils";
+import { AccountData } from "../../@types/Account";
 
 const assetsRouter = express.Router();
 
 assetsRouter.get("/getAssets", async (req, res) => {
   const uid = String(req.query.uid);
 
-  const assetDb = await supabase.from("user_data").select("").eq("userId", uid);
-  let userData: UserDataDB | undefined =
-    assetDb.data![0] as unknown as UserDataDB;
+  const userData = await getUserData(uid);
 
   if (!userData || !userData.user_assets) {
     const assetCollections: AssetsData[] = [
@@ -51,12 +50,14 @@ assetsRouter.get("/getAssets", async (req, res) => {
     }
   }
 
-  const assetData: UserDataDB = JSON.parse(
-    CryptoJS.AES.decrypt(String(userData.user_assets), uid).toString(
+  const dataDb = await supabase.from("user_data").select("*").eq("userId", uid);
+  const data: AccountData = dataDb.data![0];
+
+  const assetData: AssetsData = JSON.parse(
+    CryptoJS.AES.decrypt(String(data?.user_assets), uid).toString(
       CryptoJS.enc.Utf8
     )
   );
-  console.log(assetData);
 
   return res.status(200).json({ assetData });
 });

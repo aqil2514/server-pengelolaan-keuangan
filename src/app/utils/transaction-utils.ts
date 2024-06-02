@@ -17,7 +17,7 @@ export async function transactionAllocation(
 
   let result: TransactionType[] = [];
 
-  const resource = transactionData.user_transaction;
+  const resource = String(transactionData.user_transaction);
   const decryptData = CryptoJS.AES.decrypt(
     resource,
     transactionData.userId
