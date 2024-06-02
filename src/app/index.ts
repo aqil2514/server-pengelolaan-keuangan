@@ -1,14 +1,7 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express } from "express";
 import dotenv from "dotenv";
-import supabase from "./lib/db";
 // import { clientEndpoint } from "./lib/data";
 import bodyParser from "body-parser";
-import {
-  TransactionBodyType,
-  TransactionFormData,
-  TransactionType,
-} from "../@types/Transaction";
-import { validateTransaction } from "./utils/transaction-utils";
 import cors from "cors";
 import accountRoute from "./router/account";
 import transactionRoute from "./router/transaction";

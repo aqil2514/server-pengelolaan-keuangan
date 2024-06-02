@@ -37,19 +37,21 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
         success: false,
         message: "Password tidak sama",
         path: "confirmPassword",
-        notifMessage:"Password tidak sama"
+        notifMessage: "Password tidak sama",
       },
     ];
     return res.status(422).json({ result });
   }
 
-  if(data.password.toLowerCase().trim() === data.username.toLowerCase().trim()){
+  if (
+    data.password.toLowerCase().trim() === data.username.toLowerCase().trim()
+  ) {
     const result: AccountResponse[] = [
       {
         success: false,
         message: "Password tidak boleh sama dengan username",
         path: "password",
-        notifMessage:"Password sama dengan username"
+        notifMessage: "Password sama dengan username",
       },
     ];
     return res.status(422).json({ result });
@@ -131,6 +133,48 @@ accountRoute.post("/login", async (req: Request, res: Response) => {
     privacy: userAccount.privacy,
     config: userAccount.config,
   };
+
+  return res.status(200).json({ user });
+});
+
+accountRoute.get("/getUser", async (req: Request, res: Response) => {
+  const email = req.query.email;
+
+  const userDb = await supabase.from("user").select("*").eq("email", email);
+  const isNothing = userDb.data?.length === 0 || !userDb.data?.[0];
+
+  const user: AccountUser = {} as AccountUser;
+  if (isNothing) {
+    const userCreate: AccountDB = {
+      username: "no setting",
+      privacy: {} as AccountDB["privacy"],
+      config: {} as AccountDB["config"],
+      password: "no setting",
+      email: String(email),
+    };
+
+    const userDb = await supabase.from("user").insert(userCreate).select("*");
+
+    const userAccount = userDb.data?.[0];
+
+    if (userAccount) {
+      user.uid = userAccount.uid;
+      user.username = userAccount.username;
+      user.email = userAccount.email;
+      user.privacy = userAccount.privacy;
+      user.config = userAccount.config;
+    }
+  } else {
+    const userAccount = userDb.data?.[0];
+
+    if (userAccount) {
+      user.uid = userAccount.uid;
+      user.username = userAccount.username;
+      user.email = userAccount.email;
+      user.privacy = userAccount.privacy;
+      user.config = userAccount.config;
+    }
+  }
 
   return res.status(200).json({ user });
 });
