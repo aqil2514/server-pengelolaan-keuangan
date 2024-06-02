@@ -45,6 +45,13 @@ export interface AccountResponse {
   path: string;
 }
 
+  export interface UserDataDB {
+    userId: string;
+    createdAt?: string;
+    user_transaction?: string;
+    user_assets?: string;
+  }
+
 export type CurrencyType = "IDR" | "USD" | "EUR";
 
 export type LanguageType = "ID" | "EN";

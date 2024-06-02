@@ -28,6 +28,8 @@ transactionRoute.get("/", async (req: Request, res: Response) => {
 
   let resDb: TransactionType[] = [];
 
+  // TODO: Buat error handling jikalau datanya masih kosong;
+
   const transactionData: TransactionType | TransactionType[] = JSON.parse(
     CryptoJS.AES.decrypt(data.user_transaction, userId).toString(
       CryptoJS.enc.Utf8

@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import accountRoute from "./router/account";
 import transactionRoute from "./router/transaction";
+import assetsRouter from "./router/assets";
 
 dotenv.config();
 
@@ -17,9 +18,11 @@ app.use(cors());
 
 const account = accountRoute;
 const transaction = transactionRoute;
+const assets = assetsRouter;
 
 app.use('/api/account', account);
 app.use("/api/transaction", transaction)
+app.use("/api/assets", assets)
 
 app.get("/", (req, res) => res.send("Express on Vercel"));
 
