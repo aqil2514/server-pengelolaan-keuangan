@@ -9,7 +9,12 @@ export const getOrCreateUserData = async (
 ): Promise<AccountData> => {
   const userData = await getUserData(uid);
 
-  if (!userData || !userData.user_assets) {
+  const decryptAsset = getDecryptedAssetData(
+    String(userData?.user_assets),
+    uid
+  );
+
+  if (!userData || !userData.user_assets || decryptAsset.length === 0) {
     const assetCollections = [
       {
         name: "Dompet Kebutuhan",
@@ -39,7 +44,7 @@ export const getOrCreateUserData = async (
       await supabase
         .from("user_data")
         .insert({ userId: uid, user_assets: encryptAssets });
-    } else if (!userData.user_assets) {
+    } else if (!userData.user_assets || decryptAsset.length === 0) {
       await supabase
         .from("user_data")
         .update({ user_assets: encryptAssets })
@@ -68,7 +73,17 @@ export const getDecryptedAssetData = (
   encryptedData: string,
   uid: string
 ): AssetsData[] => {
-  return JSON.parse(
-    CryptoJS.AES.decrypt(String(encryptedData), uid).toString(CryptoJS.enc.Utf8)
-  );
+  let assetData: AssetsData[] = [];
+
+  if (encryptedData) {
+    const data: AssetsData[] = JSON.parse(
+      CryptoJS.AES.decrypt(String(encryptedData), uid).toString(
+        CryptoJS.enc.Utf8
+      )
+    );
+
+    return (assetData = data);
+  }
+
+  return assetData;
 };

@@ -138,9 +138,17 @@ export const getDecryptedTransactionData = (
   encryptedData: string,
   uid: string
 ): TransactionType[] => {
-  return JSON.parse(
-    CryptoJS.AES.decrypt(String(encryptedData), uid).toString(CryptoJS.enc.Utf8)
-  );
+  let transactionData:TransactionType[] = [];
+
+  if(encryptedData){
+    const data = JSON.parse(
+      CryptoJS.AES.decrypt(String(encryptedData), uid).toString(CryptoJS.enc.Utf8)
+    );
+
+    transactionData = data;
+  }
+
+  return transactionData;
 };
 
 
