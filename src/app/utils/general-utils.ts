@@ -1,6 +1,6 @@
 import { AccountDB, AccountData, AccountUser } from "../../@types/Account";
 import { TransactionBodyType } from "../../@types/Transaction";
-import { AssetsData } from "../../@types/assets";
+import { AssetsData } from "../../@types/Assets";
 import supabase from "../lib/db";
 import { encryptAssets, getDecryptedAssetData } from "./asset-utils";
 import { getDecryptedTransactionData } from "./transaction-utils";

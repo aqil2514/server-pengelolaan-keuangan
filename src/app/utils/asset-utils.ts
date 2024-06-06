@@ -1,8 +1,34 @@
-import { AssetsData } from "../../@types/assets";
+import { AssetsData } from "../../@types/Assets";
 import supabase from "../lib/db";
 import CryptoJS from "crypto-js";
 import { getUserData, synchronizeUserData } from "./general-utils";
 import { AccountData } from "../../@types/Account";
+
+export const encryptAssets = (data: AssetsData[], uid: string) => {
+  const stringData = JSON.stringify(data);
+  const encryptData = CryptoJS.AES.encrypt(stringData, uid).toString();
+
+  return encryptData;
+};
+
+export const getDecryptedAssetData = (
+  encryptedData: string,
+  uid: string
+): AssetsData[] => {
+  let assetData: AssetsData[] = [];
+
+  if (encryptedData) {
+    const data: AssetsData[] = JSON.parse(
+      CryptoJS.AES.decrypt(String(encryptedData), uid).toString(
+        CryptoJS.enc.Utf8
+      )
+    );
+
+    return (assetData = data);
+  }
+
+  return assetData;
+};
 
 export const getOrCreateUserData = async (
   uid: string
@@ -62,28 +88,11 @@ export const getOrCreateUserData = async (
   return data;
 };
 
-export const encryptAssets = (data: AssetsData[], uid: string) => {
-  const stringData = JSON.stringify(data);
-  const encryptData = CryptoJS.AES.encrypt(stringData, uid);
-
-  return encryptData;
-};
-
-export const getDecryptedAssetData = (
-  encryptedData: string,
-  uid: string
-): AssetsData[] => {
-  let assetData: AssetsData[] = [];
-
-  if (encryptedData) {
-    const data: AssetsData[] = JSON.parse(
-      CryptoJS.AES.decrypt(String(encryptedData), uid).toString(
-        CryptoJS.enc.Utf8
-      )
-    );
-
-    return (assetData = data);
-  }
-
-  return assetData;
+export const saveAssetData = async (finalData: string, userId: string) => {
+  const result = await supabase
+    .from("user_data")
+    .update({ user_assets: finalData })
+    .eq("userId", userId)
+    .select();
+  return result;
 };
