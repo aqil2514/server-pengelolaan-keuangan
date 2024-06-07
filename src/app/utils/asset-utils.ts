@@ -88,6 +88,12 @@ export const getOrCreateUserData = async (
   return data;
 };
 
+/**
+ * Asset Utils | Simpan Asset Data 
+ * @param finalData Data yang sudah dienrkipsi
+ * @param userId Id usernya
+ * @returns 
+ */
 export const saveAssetData = async (finalData: string, userId: string) => {
   const result = await supabase
     .from("user_data")

@@ -65,4 +65,28 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
   return res.status(200).json({ msg: "Data berhasil diubah" });
 });
 
+assetsRouter.delete("/", async (req: Request, res: Response) => {
+  const { "asset-name": assetName, "user-id":clientId } = req.query;
+  const userData = await getUserData(String(clientId));
+
+  if (!userData) return res.status(404).json({ msg: "User tidak ditemukan" });
+  
+  const userAssetData = getDecryptedAssetData(
+    String(userData.user_assets),
+    String(clientId)
+  );
+
+  const filteredAsset = userAssetData.filter((d) => d.name !== assetName); 
+  const encryptAssetData = encryptAssets(filteredAsset, String(clientId));
+
+  const saveData = await saveAssetData(encryptAssetData, String(clientId));
+
+  if (saveData.error)
+    return res
+      .status(400)
+      .json({ msg: "Terjadi kesalahan saat menyimpan data" });
+
+  return res.status(200).json({ msg: "Data yang dipilih berhasil dihapus" });
+});
+
 export default assetsRouter;
