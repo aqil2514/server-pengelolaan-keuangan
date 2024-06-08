@@ -27,7 +27,7 @@ app.use("/api/assets", assets)
 app.get("/", (req, res) => res.send("Express on Vercel"));
 
 app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+  console.info(`[server]: Server is running at http://localhost:${port}`);
 });
 
 export default app;

@@ -1,6 +1,9 @@
 import { ZodError, z } from "zod";
-import { AccountRegister } from "../../@types/Account";
+import { AccountData, AccountRegister } from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
+import { AssetsData } from "../../@types/Assets";
+import { encryptAssets } from "./asset-utils";
+import supabase from "../lib/db";
 
 const accountRegisterSchema = z.object({
   username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/, {
@@ -24,6 +27,82 @@ const accountRegisterSchema = z.object({
   securityQuiz: z.string(),
   securityAnswer: z.string(),
 });
+
+export async function createDataUser(id: string) {
+  try {
+    // Validate ID
+    if (!id) {
+      throw new Error("Invalid user ID");
+    }
+
+    // Check if user data already exists
+    const { data: existingData, error: checkError } = await supabase
+      .from("user_data")
+      .select("*")
+      .eq("userId", id);
+
+    if (checkError) {
+      throw new Error(`Failed to check user data: ${checkError.message}`);
+    }
+
+    if (existingData && existingData.length > 0) {
+      return; 
+    }
+
+    // Default Assets
+    const userAssetData: AssetsData[] = [
+      {
+        name: "Kantong Utama",
+        group: "Tunai",
+        amount: 0,
+        description: "Kantong yang berbagai macam uang",
+      },
+      {
+        name: "Bank BRI",
+        group: "Rekening",
+        amount: 0,
+        description: "ATM untuk menyimpang uang",
+      },
+      {
+        name: "Dana",
+        group: "E-Wallet",
+        amount: 0,
+        description: "Untuk Jajan",
+      },
+    ];
+
+    // Encrypt Assets Data
+    const encryptAssetData = encryptAssets(userAssetData, id);
+
+    // Prepare User Data
+    const userData: AccountData = {
+      userId: id,
+      user_assets: encryptAssetData,
+    };
+
+    // Insert User Data into Database
+    const { error: insertError } = await supabase
+      .from("user_data")
+      .insert(userData);
+    if (insertError) {
+      throw new Error(`Failed to insert user data: ${insertError.message}`);
+    }
+
+    console.info("User data created successfully for user ID:", id);
+  } catch (error) {
+    console.error("Error creating user data:", error);
+  }
+}
+
+export function isValidEmail(email: string): boolean {
+  const emailSchema = z.string().email();
+  try {
+    emailSchema.parse(email);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 export function validateRegistration(formData: AccountRegister) {
   try {

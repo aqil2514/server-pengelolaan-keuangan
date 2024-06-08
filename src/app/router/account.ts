@@ -6,8 +6,14 @@ import {
   AccountResponse,
   AccountUser,
 } from "../../@types/Account";
-import { validatePassword, validateRegistration } from "../utils/account-utils";
+import {
+  createDataUser,
+  isValidEmail,
+  validatePassword,
+  validateRegistration,
+} from "../utils/account-utils";
 import supabase from "../lib/db";
+import { z } from "zod";
 const accountRoute = express.Router();
 
 accountRoute.post("/register", async (req: Request, res: Response) => {
@@ -93,6 +99,7 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
 
   const finalData: AccountDB = {
+    uid: crypto.randomUUID(),
     username: data.username.toLowerCase(),
     password: hashedPassword,
     email: data.email,
@@ -108,44 +115,56 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   };
 
   await supabase.from("user").insert(finalData);
+  await createDataUser(String(finalData.uid));
 
   return res.status(200).json({ sucess: true });
 });
 
 accountRoute.post("/login", async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email:credential, password } = req.body;
 
-  const userDb = await supabase.from("user").select("*").eq("email", email);
-  if (userDb.data && userDb.data?.length === 0)
+  const isEmail = isValidEmail(credential);
+  const field = isEmail ? "email": "username";
+
+  const { data: users, error } = await supabase
+    .from("user")
+    .select("*")
+    .eq(field, credential);
+  if (error || users.length === 0)
     return res
       .status(404)
       .json({ success: false, message: "Akun tidak ditemukan" });
-  const userAccount: AccountDB = userDb.data![0];
 
+  const [userAccount] = users;
   const isCompared = await bcrypt.compare(password, userAccount.password);
   if (!isCompared)
     return res.status(401).json({ success: false, message: "Password salah" });
 
-  const user: AccountUser = {
-    uid: userAccount.uid,
-    username: userAccount.username,
-    email: userAccount.email,
-    privacy: userAccount.privacy,
-    config: userAccount.config,
-  };
+  const { uid, username, privacy, config, email } = userAccount;
 
-  return res.status(200).json({ user });
+  await createDataUser(uid);
+
+  return res
+    .status(200)
+    .json({ user: { uid, username, email, privacy, config } });
 });
 
 accountRoute.get("/getUser", async (req: Request, res: Response) => {
-  const email = req.query.email;
+  const { email } = req.query;
 
-  const userDb = await supabase.from("user").select("*").eq("email", email);
-  const isNothing = userDb.data?.length === 0 || !userDb.data?.[0];
+  const { data: users, error } = await supabase
+    .from("user")
+    .select("*")
+    .eq("email", email);
+  if (error)
+    return res
+      .status(500)
+      .json({ success: false, message: "Terjadi kesalahan pada server" });
 
-  const user: AccountUser = {} as AccountUser;
-  if (isNothing) {
-    const userCreate: AccountDB = {
+  let userAccount: AccountDB = users[0];
+
+  if (!userAccount) {
+    const userCreate = {
       username: "no setting",
       privacy: {} as AccountDB["privacy"],
       config: {} as AccountDB["config"],
@@ -153,30 +172,25 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
       email: String(email),
     };
 
-    const userDb = await supabase.from("user").insert(userCreate).select("*");
+    const { data, error } = await supabase
+      .from("user")
+      .insert(userCreate)
+      .select("*");
+    if (error)
+      return res
+        .status(500)
+        .json({ success: false, message: "Gagal membuat akun baru" });
 
-    const userAccount = userDb.data?.[0];
+    userAccount = data[0];
 
-    if (userAccount) {
-      user.uid = userAccount.uid;
-      user.username = userAccount.username;
-      user.email = userAccount.email;
-      user.privacy = userAccount.privacy;
-      user.config = userAccount.config;
-    }
-  } else {
-    const userAccount = userDb.data?.[0];
-
-    if (userAccount) {
-      user.uid = userAccount.uid;
-      user.username = userAccount.username;
-      user.email = userAccount.email;
-      user.privacy = userAccount.privacy;
-      user.config = userAccount.config;
-    }
+    await createDataUser(String(userAccount.uid));
   }
 
-  return res.status(200).json({ user });
+  const { uid, username, privacy, config } = userAccount;
+
+  return res
+    .status(200)
+    .json({ user: { uid, username, email, privacy, config } });
 });
 
 export default accountRoute;
