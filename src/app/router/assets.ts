@@ -35,7 +35,7 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
   const finalData: AssetsData = {
     name: assetName,
     amount: assetNominal,
-    description: assetDescription,
+    description: decodeURIComponent(assetDescription),
     group: newAssetCategory ? newAssetCategory : assetCategory,
   };
 
