@@ -172,7 +172,10 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
       user_transaction: encryptData,
     };
 
-    await supabase.from("user_data").insert(userTransactionData);
+    const updateData= await supabase
+      .from("user_data")
+      .update({ user_transaction: userTransactionData.user_transaction })
+      .eq("userId", userTransactionData.userId);
   }
   /**
    * * Alokasi data End

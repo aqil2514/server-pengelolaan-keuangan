@@ -1,5 +1,5 @@
 import { AccountDB, AccountData, AccountUser } from "../../@types/Account";
-import { TransactionBodyType } from "../../@types/Transaction";
+import { TransactionBodyType, TransactionType } from "../../@types/Transaction";
 import { AssetsData } from "../../@types/Assets";
 import supabase from "../lib/db";
 import { encryptAssets, getDecryptedAssetData } from "./asset-utils";
@@ -33,8 +33,14 @@ export async function getUserData(id: string) {
 
 // TODO : Bikin penanganan gimana kalo asset dari user itu masih kosong
 export async function synchronizeUserData(data: AccountData, uid:string) {
+  let decryptTransaction:TransactionType[] = []
   const decryptAsset = getDecryptedAssetData(String(data.user_assets), data.userId);
-  const decryptTransaction = getDecryptedTransactionData(String(data.user_transaction), data.userId);
+  const dataTrasaction = getDecryptedTransactionData(String(data.user_transaction), data.userId);
+  
+  if(Array.isArray(dataTrasaction)) decryptTransaction = dataTrasaction;
+  else{
+    decryptTransaction.push(dataTrasaction);
+  }
 
   const assetNames = new Set<string>();
 
