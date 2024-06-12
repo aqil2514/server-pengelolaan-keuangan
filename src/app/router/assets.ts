@@ -7,6 +7,8 @@ import {
 } from "../utils/asset-utils";
 import { AssetFormValues, AssetsData } from "../../@types/Assets";
 import { getUserData } from "../utils/general-utils";
+import { getTransactionData } from "../utils/transaction-utils";
+import { TransactionType } from "../../@types/Transaction";
 
 const assetsRouter = express.Router();
 
@@ -17,7 +19,9 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
 
   const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
 
-  return res.status(200).json({ assetData });
+  const transactionData = getTransactionData(String(userData.user_transaction), uid);
+
+  return res.status(200).json({ assetData, transactionData });
 });
 
 assetsRouter.put("/", async (req: Request, res: Response) => {
