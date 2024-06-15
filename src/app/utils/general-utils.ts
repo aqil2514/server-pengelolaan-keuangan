@@ -89,3 +89,12 @@ export async function synchronizeUserData(data: AccountData, uid:string) {
   
   return await supabase.from("user_data").update({user_assets:encryptData}).eq("userId", uid);
 }
+
+/**
+ * Mengkapitalisasi huruf pertama dari setiap kata dalam string.
+ * @param str - String yang akan dikapitalisasi
+ * @returns String dengan setiap kata yang dikapitalisasi
+ */
+export const toCapitalizeWords = (str: string): string => {
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+};

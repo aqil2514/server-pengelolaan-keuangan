@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import {
+  assetDeleteOption,
   encryptAssets,
   getDecryptedAssetData,
   getOrCreateUserData,
@@ -19,7 +20,10 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
 
   const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
 
-  const transactionData = getTransactionData(String(userData.user_transaction), uid);
+  const transactionData = getTransactionData(
+    String(userData.user_transaction),
+    uid
+  );
 
   return res.status(200).json({ assetData, transactionData });
 });
@@ -70,21 +74,42 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
 });
 
 assetsRouter.delete("/", async (req: Request, res: Response) => {
-  const { "asset-name": assetName, "user-id":clientId } = req.query;
+  const {
+    "asset-name": assetName,
+    "user-id": clientId,
+    "delete-option": deleteOption,
+  } = req.query;
   const userData = await getUserData(String(clientId));
 
   if (!userData) return res.status(404).json({ msg: "User tidak ditemukan" });
-  
+
   const userAssetData = getDecryptedAssetData(
     String(userData.user_assets),
     String(clientId)
   );
 
-  const filteredAsset = userAssetData.filter((d) => d.name !== assetName); 
+  const filteredAsset = userAssetData.filter((d) => d.name !== assetName);
   const encryptAssetData = encryptAssets(filteredAsset, String(clientId));
 
-  const saveData = await saveAssetData(encryptAssetData, String(clientId));
+  if (deleteOption === "delete-transaction") {
+    await assetDeleteOption.deleteTransaction(
+      userData.userId,
+      String(userData.user_transaction),
+      String(assetName)
+    );
+  } else if (
+    deleteOption &&
+    String(deleteOption).includes("move-transaction")
+  ) {
+    await assetDeleteOption.moveTransaction(
+      String(deleteOption),
+      userData.userId,
+      String(userData.user_transaction),
+      String(assetName)
+    );
+  }
 
+  const saveData = await saveAssetData(encryptAssetData, String(clientId));
   if (saveData.error)
     return res
       .status(400)

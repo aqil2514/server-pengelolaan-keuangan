@@ -21,9 +21,9 @@ export async function transactionAllocation(
   const decryptData = CryptoJS.AES.decrypt(
     resource,
     transactionData.userId
-    ).toString(CryptoJS.enc.Utf8);
+  ).toString(CryptoJS.enc.Utf8);
   const transactions: TransactionType | TransactionType[] =
-  JSON.parse(decryptData);
+    JSON.parse(decryptData);
 
   if (Array.isArray(transactions)) result = transactions;
   else result.push(transactions);
@@ -138,11 +138,13 @@ export const getDecryptedTransactionData = (
   encryptedData: string,
   uid: string
 ): TransactionType[] => {
-  let transactionData:TransactionType[] = [];
+  let transactionData: TransactionType[] = [];
 
-  if(encryptedData){
+  if (encryptedData) {
     const data = JSON.parse(
-      CryptoJS.AES.decrypt(String(encryptedData), uid).toString(CryptoJS.enc.Utf8)
+      CryptoJS.AES.decrypt(String(encryptedData), uid).toString(
+        CryptoJS.enc.Utf8
+      )
     );
 
     transactionData = data;
@@ -151,19 +153,23 @@ export const getDecryptedTransactionData = (
   return transactionData;
 };
 
-
 /**
  * Fungsi untuk mendekripsi dan mengurai data transaksi.
- * 
+ *
  * @param transactionData - Data transaksi terenkripsi dalam bentuk string
  * @param key - Kunci yang digunakan untuk dekripsi
  * @returns Array dari objek TransactionType
  */
-export function getTransactionData(transactionData: string, key: string): TransactionType[] {
+export function getTransactionData(
+  transactionData: string,
+  key: string
+): TransactionType[] {
   let result: TransactionType[] = [];
 
   // Mendekripsi data transaksi menggunakan dekripsi AES
-  const decryptData = CryptoJS.AES.decrypt(transactionData, key).toString(CryptoJS.enc.Utf8);
+  const decryptData = CryptoJS.AES.decrypt(transactionData, key).toString(
+    CryptoJS.enc.Utf8
+  );
 
   // Mengurai data yang telah didekripsi
   const parsedData = JSON.parse(decryptData);
@@ -183,23 +189,38 @@ export function getTransactionData(transactionData: string, key: string): Transa
 
 /**
  * Fungsi untuk mengenkripsi data transaksi.
- * 
+ *
  * @param transactionData - Data transaksi dalam bentuk string
  * @param key - Kunci yang digunakan untuk enkripsi
  * @returns Data transaksi terenkripsi dalam bentuk string
  */
-export function encryptTransactionData(transactionData: string, key: string): string {
+export function encryptTransactionData(
+  transactionData: string,
+  key: string
+): string {
   // Mengenkripsi data transaksi menggunakan enkripsi AES
   const encryptData = CryptoJS.AES.encrypt(transactionData, key).toString();
 
   // Mengembalikan data terenkripsi
   return encryptData;
 }
-const setToMidnight = (date:Date) => {
+
+export async function saveTransactionData(transaction: TransactionType[], userId:string) {
+  const data = encryptTransactionData(JSON.stringify(transaction), userId);
+
+  const result = await supabase
+    .from("user_data")
+    .update({ user_transaction: data })
+    .eq("userId", userId)
+    .select();
+  return result;
+}
+
+const setToMidnight = (date: Date) => {
   const newDate = new Date(date);
   newDate.setHours(0, 0, 0, 0);
   return newDate;
-};  
+};
 
 const TransactionFormDataSchema = z.object({
   typeTransaction: z.enum(["Pemasukan", "Pengeluaran"], {
@@ -233,3 +254,4 @@ export function validateTransaction(formData: TransactionFormData) {
 
   return { isValid: false };
 }
+
