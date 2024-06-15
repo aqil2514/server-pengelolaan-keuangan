@@ -4,6 +4,13 @@ import { ErrorValidationResponse } from "../../@types/General";
 import { AssetsData } from "../../@types/Assets";
 import { encryptAssets } from "./asset-utils";
 import supabase from "../lib/db";
+import { TransactionType } from "../../@types/Transaction";
+import { encryptTransactionData } from "./transaction-utils";
+
+interface ValidationResponse {
+  isValid: boolean;
+  errors: ErrorValidationResponse[] | null;
+}
 
 const accountRegisterSchema = z.object({
   username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/, {
@@ -28,83 +35,14 @@ const accountRegisterSchema = z.object({
   securityAnswer: z.string(),
 });
 
-export async function createDataUser(id: string) {
-  try {
-    // Validate ID
-    if (!id) {
-      throw new Error("Invalid user ID");
-    }
-
-    // Check if user data already exists
-    const { data: existingData, error: checkError } = await supabase
-      .from("user_data")
-      .select("*")
-      .eq("userId", id);
-
-    if (checkError) {
-      throw new Error(`Failed to check user data: ${checkError.message}`);
-    }
-
-    if (existingData && existingData.length > 0) {
-      return; 
-    }
-
-    // Default Assets
-    const userAssetData: AssetsData[] = [
-      {
-        name: "Kantong Utama",
-        group: "Tunai",
-        amount: 0,
-        description: "Kantong yang berbagai macam uang",
-      },
-      {
-        name: "Bank BRI",
-        group: "Rekening",
-        amount: 0,
-        description: "ATM untuk menyimpang uang",
-      },
-      {
-        name: "Dana",
-        group: "E-Wallet",
-        amount: 0,
-        description: "Untuk Jajan",
-      },
-    ];
-
-    // Encrypt Assets Data
-    const encryptAssetData = encryptAssets(userAssetData, id);
-
-    // Prepare User Data
-    const userData: AccountData = {
-      userId: id,
-      user_assets: encryptAssetData,
-    };
-
-    // Insert User Data into Database
-    const { error: insertError } = await supabase
-      .from("user_data")
-      .insert(userData);
-    if (insertError) {
-      throw new Error(`Failed to insert user data: ${insertError.message}`);
-    }
-
-    console.info("User data created successfully for user ID:", id);
-  } catch (error) {
-    console.error("Error creating user data:", error);
-  }
-}
-
-export function isValidEmail(email: string): boolean {
-  const emailSchema = z.string().email();
-  try {
-    emailSchema.parse(email);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-export function validateRegistration(formData: AccountRegister) {
+/**
+ * Validasi pendaftaran
+ * @param {AccountRegister} formData Form Data yang digunakan untuk registrasi
+ * @returns {ValidationResponse} Hasil validasi
+ */
+export function validateRegistration(
+  formData: AccountRegister
+): ValidationResponse {
   try {
     accountRegisterSchema.parse(formData);
     return { isValid: true, errors: null };
@@ -136,9 +74,98 @@ export function validateRegistration(formData: AccountRegister) {
     }
   }
 
-  return { isValid: false };
+  return { isValid: false, errors: null };
 }
 
+export async function createDataUser(id: string) {
+  try {
+    // Validasi ID
+    if (!id) {
+      throw new Error("Invalid user ID");
+    }
+
+    // Cek apakah user sudah memiliki data?
+    const { data: existingData, error: checkError } = await supabase
+      .from("user_data")
+      .select("*")
+      .eq("userId", id);
+
+    if (checkError) {
+      throw new Error(`Gagal memeriksa data user: ${checkError.message}`);
+    }
+
+    if (existingData && existingData.length > 0) {
+      return;
+    }
+
+    // Default Assets
+    const userAssetData: AssetsData[] = [
+      {
+        name: "Kantong Utama",
+        group: "Tunai",
+        amount: 0,
+        description: "Kantong yang berbagai macam uang",
+      },
+      {
+        name: "Bank BRI",
+        group: "Rekening",
+        amount: 0,
+        description: "ATM untuk menyimpang uang",
+      },
+      {
+        name: "Dana",
+        group: "E-Wallet",
+        amount: 0,
+        description: "Untuk Jajan",
+      },
+    ];
+
+    // Default Transaction
+    const userTransactionData: TransactionType[] = [];
+
+    // Encrypt Assets Data
+    const encryptAssetData = encryptAssets(userAssetData, id);
+
+    // Encrypt Transaction Data
+    const encryptTransaction = encryptTransactionData(JSON.stringify(userTransactionData), id)
+
+    // Prepare User Data
+    const userData: AccountData = {
+      userId: id,
+      user_assets: encryptAssetData,
+      user_transaction: encryptTransaction
+    };
+
+    // Insert User Data into Database
+    const { error: insertError } = await supabase
+      .from("user_data")
+      .insert(userData);
+    if (insertError) {
+      throw new Error(`Failed to insert user data: ${insertError.message}`);
+    }
+
+    console.info("User data created successfully for user ID:", id);
+  } catch (error) {
+    console.error("Error creating user data:", error);
+  }
+}
+
+export function isValidEmail(email: string): boolean {
+  const emailSchema = z.string().email();
+  try {
+    emailSchema.parse(email);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 
+ * @param {string} password Password pertama 
+ * @param {string} confirmPassword Password kedua yang harus sama 
+ * @returns {boolean}
+ */
 export function validatePassword(password: string, confirmPassword: string) {
   if (password !== confirmPassword) return { isSame: false };
   return { isSame: true };

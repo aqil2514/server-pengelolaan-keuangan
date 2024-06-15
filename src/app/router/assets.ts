@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import {
   assetDeleteOption,
+  changeAssetTransaction,
   encryptAssets,
   getDecryptedAssetData,
   getOrCreateUserData,
@@ -60,6 +61,10 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
   if (selectedIndex === -1)
     return res.status(404).json({ msg: "Data tidak ditemukan" });
   userAssetData[selectedIndex] = finalData;
+
+  if(assetName !== oldAssetName){
+    await changeAssetTransaction(oldAssetName, assetName, String(userData.user_transaction), userData.userId)
+  }
 
   const encryptAssetData = encryptAssets(userAssetData, clientId);
 

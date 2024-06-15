@@ -11,6 +11,38 @@ import {
   getDecryptedTransactionData,
   saveTransactionData,
 } from "./transaction-utils";
+import { TransactionType } from "../../@types/Transaction";
+
+// Interface untuk opsi penghapusan aset
+interface AssetDeleteOption {
+  /**
+   * Fungsi untuk menghapus transaksi yang berisi aset lama.
+   * @param clientData - Data klien yang dibutuhkan untuk dekripsi.
+   * @param encTransaction - Data transaksi terenkripsi.
+   * @param oldAsset - Nama aset lama yang ingin dihapus dari transaksi.
+   * @returns Promise yang menghasilkan array transaksi yang telah diperbarui.
+   */
+  deleteTransaction: (
+    clientData: string,
+    encTransaction: string,
+    oldAsset: string
+  ) => Promise<TransactionType[]>;
+
+  /**
+   * Fungsi untuk memindahkan transaksi dari aset lama ke aset baru.
+   * @param deleteOption - Opsi yang menunjukkan aset target untuk pemindahan.
+   * @param clientData - Data klien yang dibutuhkan untuk dekripsi.
+   * @param encTransaction - Data transaksi terenkripsi.
+   * @param oldAsset - Nama aset lama yang ingin dipindahkan.
+   * @returns Promise yang menghasilkan array transaksi yang telah diperbarui.
+   */
+  moveTransaction: (
+    deleteOption: string,
+    clientData: string,
+    encTransaction: string,
+    oldAsset: string
+  ) => Promise<TransactionType[]>;
+}
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)
@@ -27,7 +59,7 @@ export const encryptAssets = (data: AssetsData[], uid: string) => {
   return encryptData;
 };
 
-export const assetDeleteOption = {
+export const assetDeleteOption: AssetDeleteOption = {
   deleteTransaction: async (
     clientData: string,
     encTransaction: string,
@@ -95,6 +127,35 @@ export const assetDeleteOption = {
 
     return updatedTransaction;
   },
+};
+
+export const changeAssetTransaction = async (
+  oldAssetName: string,
+  newAssetName: string,
+  encTransaction: string,
+  clientId: string
+) => {
+  const transactions = getDecryptedTransactionData(encTransaction, clientId);
+  const updatedTransaction = transactions.map((transaction) => {
+    if (transaction.body.some((body) => body.asset.trim() === oldAssetName)) {
+      // Jika body masih ada yang menggunakan aset lama, petakan lagi bodynya.
+      const updatedBody = transaction.body.map((bodyItem) =>
+        // Apakah asset bodynya sama dengan asset lama?
+        bodyItem.asset.trim() === oldAssetName
+          ? // Jika sama dengan asset lama, ganti asset tersebut menjadi asset baru
+            { ...bodyItem, asset: toCapitalizeWords(newAssetName) }
+          : // Jika bukan, jangan disentuh.
+            bodyItem
+      );
+
+      // Kembalikan transaksinya
+      return { ...transaction, body: updatedBody };
+    }
+
+    return transaction;
+  });
+
+  await saveTransactionData(updatedTransaction, clientId);
 };
 
 /**
