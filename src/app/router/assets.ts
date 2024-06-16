@@ -29,6 +29,46 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
   return res.status(200).json({ assetData, transactionData });
 });
 
+assetsRouter.post("/", async (req: Request, res: Response) => {
+  const body = req.body;
+  const formData: AssetFormValues = body.formData;
+  const {
+    assetName,
+    assetNominal,
+    assetCategory,
+    newAssetCategory,
+    assetDescription,
+  } = formData;
+  const userId: string = req.body.userId;
+
+  const userData = await getUserData(userId);
+  const userAssetData = getDecryptedAssetData(
+    String(userData?.user_assets),
+    userId
+  );
+
+  let assetGroup = newAssetCategory ? newAssetCategory : assetCategory;
+
+  if(userAssetData.find((asset) => asset.name.trim() === assetName.trim())){
+    return res.status(409).json({success:false, message: "Nama Aset sudah ada"});
+  }
+
+  const finalData: AssetsData = {
+    name: assetName,
+    amount: assetNominal,
+    description: decodeURIComponent(assetDescription),
+    group: assetGroup,
+  };
+
+  userAssetData.push(finalData);
+
+  const encAssetData = encryptAssets(userAssetData, userId);
+
+  await saveAssetData(encAssetData, userId);
+
+  return res.status(200).json({ success: true, message: "Aset berhasil ditambah" });
+});
+
 assetsRouter.put("/", async (req: Request, res: Response) => {
   const clientData: AssetFormValues = req.body.formData;
   const clientId: string = req.body.userId;
@@ -51,19 +91,30 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
   const userData = await getUserData(clientId);
 
   if (!userData) return res.status(404).json({ msg: "User tidak ditemukan" });
+  
 
   const userAssetData = getDecryptedAssetData(
     String(userData.user_assets),
     clientId
   );
+
+  if(userAssetData.find((asset) => asset.name.trim() === assetName.trim())){
+    return res.status(409).json({success:false, message: "Nama Aset sudah ada"});
+  }
+
   const selectedIndex = userAssetData.findIndex((d) => d.name === oldAssetName);
 
   if (selectedIndex === -1)
     return res.status(404).json({ msg: "Data tidak ditemukan" });
   userAssetData[selectedIndex] = finalData;
 
-  if(assetName !== oldAssetName){
-    await changeAssetTransaction(oldAssetName, assetName, String(userData.user_transaction), userData.userId)
+  if (assetName !== oldAssetName) {
+    await changeAssetTransaction(
+      oldAssetName,
+      assetName,
+      String(userData.user_transaction),
+      userData.userId
+    );
   }
 
   const encryptAssetData = encryptAssets(userAssetData, clientId);

@@ -76,8 +76,8 @@ export const assetDeleteOption: AssetDeleteOption = {
         ...transaction,
         body: transaction.body.filter(
           (bodyItem) =>
-            bodyItem.asset.trim().toLowerCase() !==
-            oldAsset.trim().toLowerCase()
+            bodyItem.asset.trim() !==
+            oldAsset.trim()
         ),
       }))
       .filter((d) => d.body.length > 0);
