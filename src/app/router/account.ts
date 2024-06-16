@@ -4,7 +4,6 @@ import {
   AccountDB,
   AccountRegister,
   AccountResponse,
-  AccountUser,
 } from "../../@types/Account";
 import {
   createDataUser,
@@ -13,7 +12,6 @@ import {
   validateRegistration,
 } from "../utils/account-utils";
 import supabase from "../lib/db";
-import { z } from "zod";
 const accountRoute = express.Router();
 
 accountRoute.post("/register", async (req: Request, res: Response) => {
@@ -121,10 +119,20 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
 });
 
 accountRoute.post("/login", async (req: Request, res: Response) => {
-  const { email:credential, password } = req.body;
+  const { email: credential, password } = req.body;
 
   const isEmail = isValidEmail(credential);
-  const field = isEmail ? "email": "username";
+  const field = isEmail ? "email" : "username";
+
+  if (!credential)
+    return res
+      .status(422)
+      .json({ success: false, message: "Email atau username belum diisi" });
+
+  if (!password)
+    return res
+      .status(422)
+      .json({ success: false, message: "Password belum diisi" });
 
   const { data: users, error } = await supabase
     .from("user")
@@ -165,9 +173,13 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
 
   if (!userAccount) {
     const userCreate = {
-      username: "no setting",
+      username: undefined,
       privacy: {} as AccountDB["privacy"],
-      config: {} as AccountDB["config"],
+      config: {
+        currency: "IDR",
+        language: "ID",
+        purposeUsage: "Individu",
+      } as AccountDB["config"],
       password: "no setting",
       email: String(email),
     };

@@ -98,7 +98,7 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
     clientId
   );
 
-  if(userAssetData.find((asset) => asset.name.trim() === assetName.trim())){
+  if(assetName !== oldAssetName && userAssetData.find((asset) => asset.name.trim() === assetName.trim())){
     return res.status(409).json({success:false, message: "Nama Aset sudah ada"});
   }
 
