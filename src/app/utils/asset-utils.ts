@@ -143,7 +143,7 @@ export const changeAssetTransaction = async (
         // Apakah asset bodynya sama dengan asset lama?
         bodyItem.asset.trim() === oldAssetName
           ? // Jika sama dengan asset lama, ganti asset tersebut menjadi asset baru
-            { ...bodyItem, asset: toCapitalizeWords(newAssetName) }
+            { ...bodyItem, asset: newAssetName }
           : // Jika bukan, jangan disentuh.
             bodyItem
       );
