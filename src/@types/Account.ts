@@ -46,6 +46,13 @@ export interface AccountResponse {
   path: string;
 }
 
+export interface AccountProfile extends Account {
+  uid: AccountDB["uid"],
+  currency: AccountDB["config"]["currency"],
+  language: AccountDB["config"]["language"],
+  purposeUsage: AccountDB["config"]["purposeUsage"],
+};
+
 export type CurrencyType = "IDR" | "USD" | "EUR";
 
 export type LanguageType = "ID" | "EN";

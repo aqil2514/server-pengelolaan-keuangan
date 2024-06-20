@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import {
   AccountDB,
+  AccountProfile,
   AccountRegister,
   AccountResponse,
 } from "../../@types/Account";
@@ -9,9 +10,12 @@ import {
   createDataUser,
   isValidEmail,
   validatePassword,
+  validateProfile,
   validateRegistration,
 } from "../utils/account-utils";
 import supabase from "../lib/db";
+import { HttpResponse } from "../../@types/General";
+import { ZodError } from "zod";
 const accountRoute = express.Router();
 
 accountRoute.post("/register", async (req: Request, res: Response) => {
@@ -203,6 +207,35 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
   return res
     .status(200)
     .json({ user: { uid, username, email, privacy, config } });
+});
+
+accountRoute.put("/", async (req: Request, res: Response) => {
+  const body = req.body;
+  const data: AccountProfile = {
+    ...body,
+    currency: body.config.currency,
+    language: body.config.language,
+    purposeUsage: body.config.purposeUsage,
+    config: undefined,
+  };
+
+  const validation = validateProfile(data);
+  if (!validation.isValid) {
+    const response: HttpResponse = {
+      data: null,
+      error: validation.error as ZodError,
+      message: "Validasi Gagal",
+    };
+    return res.status(422).json(response);
+  }
+
+  const response: HttpResponse = {
+    data,
+    error: null,
+    message: "Profile akun berhasil diubah",
+  };
+
+  return res.status(200).json(response);
 });
 
 export default accountRoute;

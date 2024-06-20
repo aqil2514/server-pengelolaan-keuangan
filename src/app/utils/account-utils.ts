@@ -1,5 +1,9 @@
 import { ZodError, z } from "zod";
-import { AccountData, AccountRegister } from "../../@types/Account";
+import {
+  AccountData,
+  AccountProfile,
+  AccountRegister,
+} from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
 import { AssetsData } from "../../@types/Assets";
 import { encryptAssets } from "./asset-utils";
@@ -13,7 +17,7 @@ interface ValidationResponse {
 }
 
 const accountRegisterSchema = z.object({
-  username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/, {
+  username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d.]{6,}$/, {
     message:
       "Username minimal 6 karakter dan minimal harus mengandung 1 huruf dan 1 angka",
   }),
@@ -34,6 +38,56 @@ const accountRegisterSchema = z.object({
   securityQuiz: z.string(),
   securityAnswer: z.string(),
 });
+
+const accountProfileSchema = z.object({
+  username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d.]{6,}$/, {
+    message:
+      "Username minimal 6 karakter dan minimal harus mengandung 1 huruf dan 1 angka",
+  }),
+  email: z.string().email({ message: "Alamat email tidak valid" }),
+  currency: z.enum(["IDR", "USD", "EUR"], {
+    message: "Mata uang tidak tersedia atau belum didukung",
+  }),
+  language: z.enum(["ID", "EN"], {
+    message: "Bahasa yang dipilih belum tersedia",
+  }),
+  purposeUsage: z.enum(["Individu", "Organization"], {
+    message: "Tujuan penggunaan tidak tersedia",
+  }),
+});
+
+export function validateProfile(data: AccountProfile) {
+  try {
+    const validation = accountProfileSchema.parse(data);
+    return {
+      isValid: true,
+      data: validation,
+      error: null,
+      message: "Validasi berhasil",
+    };
+  } catch (error) {
+    if(error instanceof ZodError){
+      const errors:ErrorValidationResponse[] = error.issues.map((e) => {
+        let notifMessage:string="";
+        const path = String(e.path[0]);
+
+        if(path === "username") notifMessage = "Username tidak Valid";
+        else if (path === "email") notifMessage = "Email tidak valid";
+        else if (path === "language") notifMessage = "Bahasa tidak valid";
+        else if (path === "purposeUsage") notifMessage = "Tujuan penggunaan tidak valid";
+        else if (path === "currency") notifMessage = "Mata uang tidak valid";
+
+        return {
+          message: e.message,
+          notifMessage,
+          path
+        }
+      });
+      return { isValid: false, data: null, error:errors, message: "Validasi gagal" };
+    }
+    return { isValid: false, data: null, error, message: "Validasi gagal" };
+  }
+}
 
 /**
  * Validasi pendaftaran
@@ -127,13 +181,16 @@ export async function createDataUser(id: string) {
     const encryptAssetData = encryptAssets(userAssetData, id);
 
     // Encrypt Transaction Data
-    const encryptTransaction = encryptTransactionData(JSON.stringify(userTransactionData), id)
+    const encryptTransaction = encryptTransactionData(
+      JSON.stringify(userTransactionData),
+      id
+    );
 
     // Prepare User Data
     const userData: AccountData = {
       userId: id,
       user_assets: encryptAssetData,
-      user_transaction: encryptTransaction
+      user_transaction: encryptTransaction,
     };
 
     // Insert User Data into Database
@@ -161,9 +218,9 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * 
- * @param {string} password Password pertama 
- * @param {string} confirmPassword Password kedua yang harus sama 
+ *
+ * @param {string} password Password pertama
+ * @param {string} confirmPassword Password kedua yang harus sama
  * @returns {boolean}
  */
 export function validatePassword(password: string, confirmPassword: string) {
