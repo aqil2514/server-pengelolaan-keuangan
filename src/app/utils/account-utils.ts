@@ -1,8 +1,10 @@
 import { ZodError, z } from "zod";
 import {
+  AccountDB,
   AccountData,
   AccountProfile,
   AccountRegister,
+  AccountUser,
 } from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
 import { AssetsData } from "../../@types/Assets";
@@ -204,6 +206,26 @@ export async function createDataUser(id: string) {
     console.info("User data created successfully for user ID:", id);
   } catch (error) {
     console.error("Error creating user data:", error);
+  }
+}
+
+export async function saveUser(data:AccountUser | AccountDB){
+  if(isAccountDB(data)){
+    return console.log(data)
+  }
+
+  const resultSaving = await supabase.from("user").update(data).eq("uid", data.uid);
+  return resultSaving;
+}
+ 
+function isAccountDB(data:any):data is AccountDB{
+  return data && typeof data.password === "string";
+}
+
+export async function isThereUser({username, email} : Pick<AccountDB, "email" | "username">){
+  if(username){
+    const usernameAccount = await supabase.from("user").select("*").eq("username", username);
+    console.log(usernameAccount)
   }
 }
 

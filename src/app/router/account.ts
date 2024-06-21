@@ -5,10 +5,13 @@ import {
   AccountProfile,
   AccountRegister,
   AccountResponse,
+  AccountUser,
 } from "../../@types/Account";
 import {
   createDataUser,
+  isThereUser,
   isValidEmail,
+  saveUser,
   validatePassword,
   validateProfile,
   validateRegistration,
@@ -16,6 +19,7 @@ import {
 import supabase from "../lib/db";
 import { HttpResponse } from "../../@types/General";
 import { ZodError } from "zod";
+import { getUser } from "../utils/general-utils";
 const accountRoute = express.Router();
 
 accountRoute.post("/register", async (req: Request, res: Response) => {
@@ -229,12 +233,36 @@ accountRoute.put("/", async (req: Request, res: Response) => {
     return res.status(422).json(response);
   }
 
+  
+  const user = await getUser(body.uid); 
+  
+  if(!user) {
+    const response: HttpResponse = {
+      data,
+      error: null,
+      message: "Profile akun berhasil diubah",
+    };
+    return res.status(400).json(response);
+  }
+
+  const checkUser = await isThereUser({ username: body.username, email: body.email})
+
+  
+  const finalData:AccountUser= {
+    uid: user.uid,
+    username: body.username === user.username ? user.username : body.username,
+    config: JSON.stringify(user.config) === JSON.stringify(body.config) ? user.config : body.config,
+    email: body.email === user.email ? user.email : body.email,
+    privacy: user.privacy
+  }
+
+  await saveUser(finalData);
+  
   const response: HttpResponse = {
     data,
     error: null,
     message: "Profile akun berhasil diubah",
   };
-
   return res.status(200).json(response);
 });
 
