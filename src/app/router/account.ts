@@ -17,7 +17,7 @@ import {
   validateRegistration,
 } from "../utils/account-utils";
 import supabase from "../lib/db";
-import { HttpResponse } from "../../@types/General";
+import { ErrorValidationResponse, HttpResponse } from "../../@types/General";
 import { ZodError } from "zod";
 import { getUser } from "../utils/general-utils";
 const accountRoute = express.Router();
@@ -227,39 +227,72 @@ accountRoute.put("/", async (req: Request, res: Response) => {
   if (!validation.isValid) {
     const response: HttpResponse = {
       data: null,
-      error: validation.error as ZodError,
+      error: validation.error as ErrorValidationResponse[],
       message: "Validasi Gagal",
     };
     return res.status(422).json(response);
   }
 
-  
-  const user = await getUser(body.uid); 
-  
-  if(!user) {
+  const user = await getUser(body.uid);
+
+  if (!user) {
+    const error:ErrorValidationResponse[] = [
+      {
+        path:"username",
+        message:"Username sudah digunakan. Gunakan yang lain",
+        notifMessage: "Username sudah digunakan!"
+      }
+    ]
     const response: HttpResponse = {
       data,
-      error: null,
+      error,
       message: "Profile akun berhasil diubah",
     };
     return res.status(400).json(response);
   }
 
-  const checkUser = await isThereUser({ username: body.username, email: body.email})
-
+  const checkUser = await isThereUser({
+    username: body.username,
+    email: body.email,
+    oldEmail: user.email,
+    oldUsername: user.username
+  });
   
-  const finalData:AccountUser= {
-    uid: user.uid,
-    username: body.username === user.username ? user.username : body.username,
-    config: JSON.stringify(user.config) === JSON.stringify(body.config) ? user.config : body.config,
-    email: body.email === user.email ? user.email : body.email,
-    privacy: user.privacy
+  console.log(checkUser)
+  
+  if (!checkUser?.isValid) {
+    const error:ErrorValidationResponse[] = [
+      {
+        path:"username",
+        message:"Username sudah digunakan. Gunakan yang lain",
+        notifMessage: "Username sudah digunakan!"
+      }
+    ]
+
+    const response: HttpResponse = {
+      data: null,
+      error,
+      message: error[0].notifMessage as string,
+    };
+
+    return res.status(400).json(response);
   }
 
+  const finalData: AccountUser = {
+    uid: user.uid,
+    username: body.username === user.username ? user.username : body.username,
+    config:
+      JSON.stringify(user.config) === JSON.stringify(body.config)
+        ? user.config
+        : body.config,
+    email: body.email === user.email ? user.email : body.email,
+    privacy: user.privacy,
+  };
+
   await saveUser(finalData);
-  
+
   const response: HttpResponse = {
-    data,
+    data: finalData,
     error: null,
     message: "Profile akun berhasil diubah",
   };

@@ -210,9 +210,9 @@ export async function createDataUser(id: string) {
 }
 
 export async function saveUser(data:AccountUser | AccountDB){
-  if(isAccountDB(data)){
-    return console.log(data)
-  }
+  // if(isAccountDB(data)){
+  //   return console.log(data)
+  // }
 
   const resultSaving = await supabase.from("user").update(data).eq("uid", data.uid);
   return resultSaving;
@@ -222,12 +222,64 @@ function isAccountDB(data:any):data is AccountDB{
   return data && typeof data.password === "string";
 }
 
-export async function isThereUser({username, email} : Pick<AccountDB, "email" | "username">){
-  if(username){
-    const usernameAccount = await supabase.from("user").select("*").eq("username", username);
-    console.log(usernameAccount)
-  }
+interface IsThereUserFunctionArgs{
+  username: string;
+  email:string;
+  oldUsername:string;
+  oldEmail:string;
 }
+
+export async function isThereUser({ username, email, oldEmail, oldUsername }: IsThereUserFunctionArgs) {
+  // Cek keberadaan username
+  if (username && username !== oldUsername) {
+    const { data: usernameAccount, error: usernameError } = await supabase
+      .from("user")
+      .select("*")
+      .eq("username", username);
+
+    if (usernameError) {
+      return {
+        isValid: false,
+        message: "Terjadi kesalahan saat memeriksa username",
+      };
+    }
+
+    if (usernameAccount && usernameAccount.length > 0) {
+      return {
+        isValid: false,
+        message: "Username sudah ada",
+      };
+    }
+  }
+
+  // Cek keberadaan email
+  if (email && email !== oldEmail) {
+    const { data: emailAccount, error: emailError } = await supabase
+      .from("user")
+      .select("*")
+      .eq("email", email);
+
+    if (emailError) {
+      return {
+        isValid: false,
+        message: "Terjadi kesalahan saat memeriksa email",
+      };
+    }
+
+    if (emailAccount && emailAccount.length > 0) {
+      return {
+        isValid: false,
+        message: "Email sudah ada",
+      };
+    }
+  }
+
+  return {
+    isValid: true,
+    message: "Username dan email tersedia",
+  };
+}
+
 
 export function isValidEmail(email: string): boolean {
   const emailSchema = z.string().email();
