@@ -22,6 +22,15 @@ export async function getUser(id: string) {
   return user;
 }
 
+export async function getUserWithPassword(id: string) {
+  const res = await supabase.from("user").select("*").eq("uid", id);
+  if (!res.data || res.data?.length === 0) return null;
+
+  const user: AccountDB = res.data[0];
+
+  return user
+}
+
 export async function getUserData(id: string) {
   const res = await supabase.from("user_data").select("*").eq("userId", id);
   if (!res.data || res.data?.length === 0) return null;

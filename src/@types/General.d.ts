@@ -13,3 +13,9 @@ export interface HttpResponse{
     error: null | any,
     message: string
 }
+
+export interface BasicResponse{
+    status: "success" | "error";
+    message: string;
+    data?: any;
+}
