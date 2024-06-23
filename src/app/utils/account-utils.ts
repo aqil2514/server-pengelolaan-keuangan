@@ -210,9 +210,10 @@ export async function createDataUser(id: string) {
 }
 
 export async function saveUser(data:AccountUser | AccountDB){
-  // if(isAccountDB(data)){
-  //   return console.log(data)
-  // }
+  if(isAccountDB(data)){
+    const resultSaving = await supabase.from("*").update(data).eq("uid", data.uid)
+    return resultSaving;
+  }
 
   const resultSaving = await supabase.from("user").update(data).eq("uid", data.uid);
   return resultSaving;

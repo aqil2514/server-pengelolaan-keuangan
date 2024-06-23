@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import {
+  Account,
   AccountDB,
   AccountProfile,
   AccountRegister,
@@ -17,9 +18,14 @@ import {
   validateRegistration,
 } from "../utils/account-utils";
 import supabase from "../lib/db";
-import { ErrorValidationResponse, HttpResponse } from "../../@types/General";
+import {
+  BasicResponse,
+  ErrorValidationResponse,
+  HttpResponse,
+} from "../../@types/General";
 import { ZodError } from "zod";
-import { getUser } from "../utils/general-utils";
+import { getUser, getUserWithPassword } from "../utils/general-utils";
+import { CD_SettingSecurityCore } from "../../@types/Setting";
 const accountRoute = express.Router();
 
 accountRoute.post("/register", async (req: Request, res: Response) => {
@@ -236,13 +242,13 @@ accountRoute.put("/", async (req: Request, res: Response) => {
   const user = await getUser(body.uid);
 
   if (!user) {
-    const error:ErrorValidationResponse[] = [
+    const error: ErrorValidationResponse[] = [
       {
-        path:"username",
-        message:"Username sudah digunakan. Gunakan yang lain",
-        notifMessage: "Username sudah digunakan!"
-      }
-    ]
+        path: "username",
+        message: "Username sudah digunakan. Gunakan yang lain",
+        notifMessage: "Username sudah digunakan!",
+      },
+    ];
     const response: HttpResponse = {
       data,
       error,
@@ -255,19 +261,19 @@ accountRoute.put("/", async (req: Request, res: Response) => {
     username: body.username,
     email: body.email,
     oldEmail: user.email,
-    oldUsername: user.username
+    oldUsername: user.username,
   });
-  
-  console.log(checkUser)
-  
+
+  console.log(checkUser);
+
   if (!checkUser?.isValid) {
-    const error:ErrorValidationResponse[] = [
+    const error: ErrorValidationResponse[] = [
       {
-        path:"username",
-        message:"Username sudah digunakan. Gunakan yang lain",
-        notifMessage: "Username sudah digunakan!"
-      }
-    ]
+        path: "username",
+        message: "Username sudah digunakan. Gunakan yang lain",
+        notifMessage: "Username sudah digunakan!",
+      },
+    ];
 
     const response: HttpResponse = {
       data: null,
@@ -297,6 +303,65 @@ accountRoute.put("/", async (req: Request, res: Response) => {
     message: "Profile akun berhasil diubah",
   };
   return res.status(200).json(response);
+});
+
+accountRoute.put("/security", async (req: Request, res: Response) => {
+  const {
+    uid,
+    securityQuiz,
+    securityAnswer,
+    oldPassword,
+    newPassword,
+    confirmNewPassword,
+  }: CD_SettingSecurityCore = req.body;
+
+  const user = await getUserWithPassword(uid);
+
+  if (!user) throw new Error("User tidak ada");
+
+  let hashedPassword: string = "";
+  if (oldPassword) {
+    const isCompared = await bcrypt.compare(oldPassword, user.password);
+    if (!isCompared)
+      return res
+        .status(401)
+        .json({ status: "error", message: "Password Salah" } as BasicResponse);
+
+    if (!newPassword || !confirmNewPassword)
+      return res.status(422).json({
+        status: "error",
+        message: "Password baru belum diisi",
+      } as BasicResponse);
+
+    if (newPassword !== confirmNewPassword)
+      return res.status(422).json({
+        status: "error",
+        message: "Password baru tidak sama",
+      } as BasicResponse);
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    hashedPassword = hashed;
+  }
+
+  const finalData: AccountDB = {
+    uid,
+    config: user.config,
+    email: user.email,
+    username: user.username,
+    password: hashedPassword,
+    privacy: {
+      securityAnswer,
+      securityQuiz,
+    },
+  } as AccountDB;
+
+  const result = await saveUser(finalData);
+  console.log(result);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Keamanan berhasil diperbarui",
+  } as BasicResponse);
 });
 
 export default accountRoute;
