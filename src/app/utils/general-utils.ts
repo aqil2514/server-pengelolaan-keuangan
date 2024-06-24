@@ -17,6 +17,7 @@ export async function getUser(id: string) {
     privacy: proc.privacy,
     email: proc.email,
     config: proc.config,
+    statusFlags: proc.statusFlags
   };
 
   return user;

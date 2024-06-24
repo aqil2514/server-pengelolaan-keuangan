@@ -4,9 +4,11 @@ import {
   AccountData,
   AccountProfile,
   AccountRegister,
+  AccountSecurityUpdateFunctions,
   AccountUser,
+  ValidationFunction,
 } from "../../@types/Account";
-import { ErrorValidationResponse } from "../../@types/General";
+import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
 import { AssetsData } from "../../@types/Assets";
 import { encryptAssets } from "./asset-utils";
 import supabase from "../lib/db";
@@ -68,24 +70,30 @@ export function validateProfile(data: AccountProfile) {
       message: "Validasi berhasil",
     };
   } catch (error) {
-    if(error instanceof ZodError){
-      const errors:ErrorValidationResponse[] = error.issues.map((e) => {
-        let notifMessage:string="";
+    if (error instanceof ZodError) {
+      const errors: ErrorValidationResponse[] = error.issues.map((e) => {
+        let notifMessage: string = "";
         const path = String(e.path[0]);
 
-        if(path === "username") notifMessage = "Username tidak Valid";
+        if (path === "username") notifMessage = "Username tidak Valid";
         else if (path === "email") notifMessage = "Email tidak valid";
         else if (path === "language") notifMessage = "Bahasa tidak valid";
-        else if (path === "purposeUsage") notifMessage = "Tujuan penggunaan tidak valid";
+        else if (path === "purposeUsage")
+          notifMessage = "Tujuan penggunaan tidak valid";
         else if (path === "currency") notifMessage = "Mata uang tidak valid";
 
         return {
           message: e.message,
           notifMessage,
-          path
-        }
+          path,
+        };
       });
-      return { isValid: false, data: null, error:errors, message: "Validasi gagal" };
+      return {
+        isValid: false,
+        data: null,
+        error: errors,
+        message: "Validasi gagal",
+      };
     }
     return { isValid: false, data: null, error, message: "Validasi gagal" };
   }
@@ -209,28 +217,40 @@ export async function createDataUser(id: string) {
   }
 }
 
-export async function saveUser(data:AccountUser | AccountDB){
-  if(isAccountDB(data)){
-    const resultSaving = await supabase.from("*").update(data).eq("uid", data.uid)
+export async function saveUser(data: AccountUser | AccountDB) {
+  if (isAccountDB(data)) {
+    console.log(data);
+    const resultSaving = await supabase
+      .from("user")
+      .update(data)
+      .eq("uid", data.uid);
     return resultSaving;
   }
 
-  const resultSaving = await supabase.from("user").update(data).eq("uid", data.uid);
+  const resultSaving = await supabase
+    .from("user")
+    .update(data)
+    .eq("uid", data.uid);
   return resultSaving;
 }
- 
-function isAccountDB(data:any):data is AccountDB{
+
+function isAccountDB(data: any): data is AccountDB {
   return data && typeof data.password === "string";
 }
 
-interface IsThereUserFunctionArgs{
+interface IsThereUserFunctionArgs {
   username: string;
-  email:string;
-  oldUsername:string;
-  oldEmail:string;
+  email: string;
+  oldUsername: string;
+  oldEmail: string;
 }
 
-export async function isThereUser({ username, email, oldEmail, oldUsername }: IsThereUserFunctionArgs) {
+export async function isThereUser({
+  username,
+  email,
+  oldEmail,
+  oldUsername,
+}: IsThereUserFunctionArgs) {
   // Cek keberadaan username
   if (username && username !== oldUsername) {
     const { data: usernameAccount, error: usernameError } = await supabase
@@ -281,7 +301,6 @@ export async function isThereUser({ username, email, oldEmail, oldUsername }: Is
   };
 }
 
-
 export function isValidEmail(email: string): boolean {
   const emailSchema = z.string().email();
   try {
@@ -302,3 +321,90 @@ export function validatePassword(password: string, confirmPassword: string) {
   if (password !== confirmPassword) return { isSame: false };
   return { isSame: true };
 }
+
+const validation: ValidationFunction = {
+  validatePassword(password: string): string | null {
+    // Define password requirements
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/;
+    const hasLowerCase = /[a-z]/;
+    const hasNumber = /[0-9]/;
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/;
+
+    if (!password) return "Password belum diisi";
+
+    if (password.length < minLength) {
+      return `Password harus minimal ${minLength} karakter.`;
+    }
+
+    if (!hasUpperCase.test(password)) {
+      return "Password harus mengandung minimal satu huruf besar.";
+    }
+
+    if (!hasLowerCase.test(password)) {
+      return "Password harus mengandung minimal satu huruf kecil.";
+    }
+
+    if (!hasNumber.test(password)) {
+      return "Password harus mengandung minimal satu angka.";
+    }
+
+    if (!hasSpecialChar.test(password)) {
+      return "Password harus mengandung minimal satu karakter khusus.";
+    }
+
+    return null;
+  },
+};
+
+/**
+ * Function untuk mengatur update security user
+ */
+export const securityUpdate: AccountSecurityUpdateFunctions = {
+  async newPassword(password, confirmPassword, user) {
+    if (user.password) {
+      const result: BasicResponse = {
+        message: "Akun sudah memiliki password",
+        status: "error",
+        statusCode: 409,
+      };
+
+      return result;
+    }
+
+    const passwordValidation = validation.validatePassword(password);
+    if (passwordValidation) {
+      const result: BasicResponse = {
+        message: passwordValidation,
+        status: "error",
+        statusCode: 422,
+      };
+
+      return result;
+    }
+
+    const clientData = {
+      password,
+      confirmPassword,
+      user,
+    };
+
+    if (password !== confirmPassword) {
+      const result: BasicResponse<null> = {
+        message: "Password tidak sama",
+        status: "error",
+        statusCode: 400,
+      };
+
+      return result;
+    }
+
+    const result: BasicResponse = {
+      message: "Buat akun berhasil",
+      status: "success",
+      data: clientData,
+    };
+
+    return result;
+  },
+};

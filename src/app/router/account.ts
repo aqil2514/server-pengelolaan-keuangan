@@ -13,6 +13,7 @@ import {
   isThereUser,
   isValidEmail,
   saveUser,
+  securityUpdate,
   validatePassword,
   validateProfile,
   validateRegistration,
@@ -124,6 +125,12 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
       securityQuiz: data.securityQuiz,
       securityAnswer: data.securityAnswer,
     },
+    statusFlags: {
+      isHavePassword: true,
+      isVerified: false,
+      isHaveSecurityQuiz:
+        data.securityQuiz && data.securityAnswer ? true : false,
+    },
   };
 
   await supabase.from("user").insert(finalData);
@@ -186,16 +193,21 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
   let userAccount: AccountDB = users[0];
 
   if (!userAccount) {
-    const userCreate = {
-      username: undefined,
+    const userCreate: AccountDB = {
+      username: "",
       privacy: {} as AccountDB["privacy"],
       config: {
         currency: "IDR",
         language: "ID",
         purposeUsage: "Individu",
       } as AccountDB["config"],
-      password: "no setting",
+      password: "",
       email: String(email),
+      statusFlags: {
+        isHavePassword: false,
+        isVerified: true,
+        isHaveSecurityQuiz: false,
+      },
     };
 
     const { data, error } = await supabase
@@ -239,7 +251,7 @@ accountRoute.put("/", async (req: Request, res: Response) => {
     return res.status(422).json(response);
   }
 
-  const user = await getUser(body.uid);
+  const user = await getUserWithPassword(body.uid);
 
   if (!user) {
     const error: ErrorValidationResponse[] = [
@@ -263,8 +275,6 @@ accountRoute.put("/", async (req: Request, res: Response) => {
     oldEmail: user.email,
     oldUsername: user.username,
   });
-
-  console.log(checkUser);
 
   if (!checkUser?.isValid) {
     const error: ErrorValidationResponse[] = [
@@ -293,6 +303,11 @@ accountRoute.put("/", async (req: Request, res: Response) => {
         : body.config,
     email: body.email === user.email ? user.email : body.email,
     privacy: user.privacy,
+    statusFlags: {
+      isHavePassword: user.password ? true : false,
+      isVerified: user.statusFlags.isVerified,
+      isHaveSecurityQuiz: user.statusFlags.isHaveSecurityQuiz,
+    },
   };
 
   await saveUser(finalData);
@@ -306,57 +321,86 @@ accountRoute.put("/", async (req: Request, res: Response) => {
 });
 
 accountRoute.put("/security", async (req: Request, res: Response) => {
-  const {
-    uid,
-    securityQuiz,
-    securityAnswer,
-    oldPassword,
-    newPassword,
-    confirmNewPassword,
-  }: CD_SettingSecurityCore = req.body;
+  const bodyData: CD_SettingSecurityCore = req.body;
+  const { cta, securityData, securityOption, uid } = bodyData;
+
+  console.log(bodyData);
+
+  if (!cta)
+    return res.status(400).json({
+      message: "Call To Action (CTA) belum diatur",
+      status: "error",
+    } as BasicResponse);
 
   const user = await getUserWithPassword(uid);
 
-  if (!user) throw new Error("User tidak ada");
+  if (!user)
+    return res.status(404).json({
+      message: "Akun tidak ditemukan",
+      status: "error",
+    } as BasicResponse);
 
-  let hashedPassword: string = "";
-  if (oldPassword) {
-    const isCompared = await bcrypt.compare(oldPassword, user.password);
-    if (!isCompared)
-      return res
-        .status(401)
-        .json({ status: "error", message: "Password Salah" } as BasicResponse);
+  if (securityData) {
+    const { confirmNewPassword, newPassword, securityAnswer, securityQuiz } =
+      securityData;
+    if (securityOption === "password-option") {
+      const createNewPassword = await securityUpdate.newPassword(
+        newPassword,
+        confirmNewPassword,
+        user
+      );
 
-    if (!newPassword || !confirmNewPassword)
-      return res.status(422).json({
-        status: "error",
-        message: "Password baru belum diisi",
-      } as BasicResponse);
+      const { statusCode, status } = createNewPassword;
+      const code = status === "success" ? 200 : 400;
+      const httpCode = statusCode ? statusCode : code;
 
-    if (newPassword !== confirmNewPassword)
-      return res.status(422).json({
-        status: "error",
-        message: "Password baru tidak sama",
-      } as BasicResponse);
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-    hashedPassword = hashed;
+      return res.status(httpCode).json(createNewPassword);
+    } else if (securityOption === "security-question-option") {
+      console.log(securityAnswer, securityQuiz);
+    }
   }
 
-  const finalData: AccountDB = {
-    uid,
-    config: user.config,
-    email: user.email,
-    username: user.username,
-    password: hashedPassword,
-    privacy: {
-      securityAnswer,
-      securityQuiz,
-    },
-  } as AccountDB;
+  // const user = await getUserWithPassword(uid);
 
-  const result = await saveUser(finalData);
-  console.log(result);
+  // if (!user) throw new Error("User tidak ada");
+
+  // let hashedPassword: string = "";
+  // if (oldPassword) {
+  //   const isCompared = await bcrypt.compare(oldPassword, user.password);
+  //   if (!isCompared)
+  //     return res
+  //       .status(401)
+  //       .json({ status: "error", message: "Password Salah" } as BasicResponse);
+
+  //   if (!newPassword || !confirmNewPassword)
+  //     return res.status(422).json({
+  //       status: "error",
+  //       message: "Password baru belum diisi",
+  //     } as BasicResponse);
+
+  //   if (newPassword !== confirmNewPassword)
+  //     return res.status(422).json({
+  //       status: "error",
+  //       message: "Password baru tidak sama",
+  //     } as BasicResponse);
+
+  //   const hashed = await bcrypt.hash(newPassword, 10);
+  //   hashedPassword = hashed;
+  // }
+
+  // const finalData: AccountDB = {
+  //   uid,
+  //   config: user.config,
+  //   email: user.email,
+  //   username: user.username,
+  //   password: newPassword ? hashedPassword : oldPassword,
+  //   privacy: {
+  //     securityAnswer,
+  //     securityQuiz,
+  //   },
+  // } as AccountDB;
+
+  // await saveUser(finalData);
 
   return res.status(200).json({
     status: "success",
