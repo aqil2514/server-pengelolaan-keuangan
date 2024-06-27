@@ -169,13 +169,13 @@ accountRoute.post("/login", async (req: Request, res: Response) => {
   if (!isCompared)
     return res.status(401).json({ success: false, message: "Password salah" });
 
-  const { uid, username, privacy, config, email } = userAccount;
+  const { uid, username, privacy, config, email, statusFlags } = userAccount;
 
   await createDataUser(uid);
 
   return res
     .status(200)
-    .json({ user: { uid, username, email, privacy, config } });
+    .json({ user: { uid, username, email, privacy, config, statusFlags } });
 });
 
 accountRoute.get("/getUser", async (req: Request, res: Response) => {
@@ -224,11 +224,11 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
     await createDataUser(String(userAccount.uid));
   }
 
-  const { uid, username, privacy, config } = userAccount;
+  const { uid, username, privacy, config, statusFlags } = userAccount;
 
   return res
     .status(200)
-    .json({ user: { uid, username, email, privacy, config } });
+    .json({ user: { uid, username, email, privacy, config, statusFlags } });
 });
 
 accountRoute.put("/", async (req: Request, res: Response) => {
@@ -324,8 +324,6 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
   const bodyData: CD_SettingSecurityCore = req.body;
   const { cta, securityData, securityOption, uid } = bodyData;
 
-  console.log(bodyData);
-
   if (!cta)
     return res.status(400).json({
       message: "Call To Action (CTA) belum diatur",
@@ -340,7 +338,7 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
       status: "error",
     } as BasicResponse);
 
-  if (securityData) {
+  if (cta === "create-new-security") {
     const { confirmNewPassword, newPassword, securityAnswer, securityQuiz } =
       securityData;
     if (securityOption === "password-option") {
@@ -356,7 +354,9 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
 
       return res.status(httpCode).json(createNewPassword);
     } else if (securityOption === "security-question-option") {
-      console.log(securityAnswer, securityQuiz);
+      const createNewQuiz = await securityUpdate.newSecurityUpdate(securityQuiz, securityAnswer,user);
+
+      console.log(createNewQuiz)
     }
   }
 

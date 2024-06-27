@@ -5,6 +5,7 @@ import {
   AccountProfile,
   AccountRegister,
   AccountSecurityUpdateFunctions,
+  AccountStatusFlags,
   AccountUser,
   ValidationFunction,
 } from "../../@types/Account";
@@ -14,6 +15,7 @@ import { encryptAssets } from "./asset-utils";
 import supabase from "../lib/db";
 import { TransactionType } from "../../@types/Transaction";
 import { encryptTransactionData } from "./transaction-utils";
+import bcrypt from "bcrypt";
 
 interface ValidationResponse {
   isValid: boolean;
@@ -399,11 +401,29 @@ export const securityUpdate: AccountSecurityUpdateFunctions = {
       return result;
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const statusFlags: AccountStatusFlags = clientData.user.statusFlags;
+
+    statusFlags.isHavePassword = true;
+
+    await supabase
+      .from("user")
+      .update({ password: hashedPassword, statusFlags })
+      .eq("uid", clientData.user.uid);
+
     const result: BasicResponse = {
-      message: "Buat akun berhasil",
+      message: "Password baru berhasil dibuat",
       status: "success",
       data: clientData,
     };
+
+    return result;
+  },
+  async newSecurityUpdate(question, answer, user) {
+    const result:BasicResponse = {} as BasicResponse;
+
+    // Lanjutin ini nanti 
 
     return result;
   },

@@ -93,7 +93,15 @@ export interface AccountSecurityUpdateFunctions{
    * @param userId User ID
    * @returns Basic HTTP Response
    */
-  newPassword: (password:string, confirmPassword: string, user:AccountDB) => Promise<BasicResponse>
+  newPassword: (password:string, confirmPassword: string, user:AccountDB) => Promise<BasicResponse>;
+  /**
+   * Membuat pertanyaan keamanan baru 
+   * @param question Apa pertanyaan yang diinginkan?
+   * @param answer Apa jawabannya?
+   * @param user User yang mana?
+   * @returns 
+   */
+  newSecurityUpdate: (question:string, answer: string, user:AccountDB) => Promise<BasicResponse>;
 }
 
 export interface ValidationFunction {
