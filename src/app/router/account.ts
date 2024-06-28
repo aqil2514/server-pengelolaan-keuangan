@@ -343,8 +343,8 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
       securityData;
     if (securityOption === "password-option") {
       const createNewPassword = await securityUpdate.newPassword(
-        newPassword,
-        confirmNewPassword,
+        String(newPassword),
+        String(confirmNewPassword),
         user
       );
 
@@ -354,9 +354,14 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
 
       return res.status(httpCode).json(createNewPassword);
     } else if (securityOption === "security-question-option") {
-      const createNewQuiz = await securityUpdate.newSecurityUpdate(securityQuiz, securityAnswer,user);
+      const createNewQuiz = await securityUpdate.newSecurityUpdate(
+        String(securityQuiz),
+        securityAnswer,
+        user
+      );
+      const { statusCode } = createNewQuiz;
 
-      console.log(createNewQuiz)
+      return res.status(Number(statusCode)).json(createNewQuiz);
     }
   }
 
