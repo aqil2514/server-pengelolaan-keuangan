@@ -16,51 +16,16 @@ import supabase from "../lib/db";
 import { TransactionType } from "../../@types/Transaction";
 import { encryptTransactionData } from "./transaction-utils";
 import bcrypt from "bcrypt";
+import {
+  accountProfileSchema,
+  accountRegisterSchema,
+} from "../zodSchema/account";
+import { STATUS_OK, STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 
 interface ValidationResponse {
   isValid: boolean;
   errors: ErrorValidationResponse[] | null;
 }
-
-const accountRegisterSchema = z.object({
-  username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d.]{6,}$/, {
-    message:
-      "Username minimal 6 karakter dan minimal harus mengandung 1 huruf dan 1 angka",
-  }),
-  password: z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/, {
-    message:
-      "Password minimal harus 8 karakter, terdiri satu huruf besar, satu huruf kecil, dan satu angka",
-  }),
-  email: z.string().email({ message: "Alamat email tidak valid" }),
-  currency: z.enum(["IDR", "USD", "EUR"], {
-    message: "Mata uang tidak tersedia atau belum didukung",
-  }),
-  language: z.enum(["ID", "EN"], {
-    message: "Bahasa yang dipilih belum tersedia",
-  }),
-  purposeUsage: z.enum(["Individu", "Organization"], {
-    message: "Tujuan penggunaan tidak tersedia",
-  }),
-  securityQuiz: z.string(),
-  securityAnswer: z.string(),
-});
-
-const accountProfileSchema = z.object({
-  username: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d.]{6,}$/, {
-    message:
-      "Username minimal 6 karakter dan minimal harus mengandung 1 huruf dan 1 angka",
-  }),
-  email: z.string().email({ message: "Alamat email tidak valid" }),
-  currency: z.enum(["IDR", "USD", "EUR"], {
-    message: "Mata uang tidak tersedia atau belum didukung",
-  }),
-  language: z.enum(["ID", "EN"], {
-    message: "Bahasa yang dipilih belum tersedia",
-  }),
-  purposeUsage: z.enum(["Individu", "Organization"], {
-    message: "Tujuan penggunaan tidak tersedia",
-  }),
-});
 
 export function validateProfile(data: AccountProfile) {
   try {
@@ -73,16 +38,17 @@ export function validateProfile(data: AccountProfile) {
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const errors: ErrorValidationResponse[] = error.issues.map((e) => {
-        let notifMessage: string = "";
-        const path = String(e.path[0]);
+      const notifMessages: Record<string, string> = {
+        username: "Username tidak valid",
+        email: "Email tidak valid",
+        language: "Bahasa tidak valid",
+        purposeUsage: "Tujuan penggunaan tidak valid",
+        currency: "Mata uang tidak valid",
+      };
 
-        if (path === "username") notifMessage = "Username tidak Valid";
-        else if (path === "email") notifMessage = "Email tidak valid";
-        else if (path === "language") notifMessage = "Bahasa tidak valid";
-        else if (path === "purposeUsage")
-          notifMessage = "Tujuan penggunaan tidak valid";
-        else if (path === "currency") notifMessage = "Mata uang tidak valid";
+      const errors: ErrorValidationResponse[] = error.issues.map((e) => {
+        const path = String(e.path[0]);
+        const notifMessage = notifMessages[path];
 
         return {
           message: e.message,
@@ -106,28 +72,28 @@ export function validateProfile(data: AccountProfile) {
  * @param {AccountRegister} formData Form Data yang digunakan untuk registrasi
  * @returns {ValidationResponse} Hasil validasi
  */
-export function validateRegistration(
-  formData: AccountRegister
-): ValidationResponse {
+export function validateRegistration(formData: AccountRegister): BasicResponse {
   try {
     accountRegisterSchema.parse(formData);
-    return { isValid: true, errors: null };
+    return {
+      message: "Validasi data Berhasil",
+      statusCode: STATUS_OK,
+      status: "success",
+    };
   } catch (error) {
     if (error instanceof ZodError) {
+      const notifMessages: Record<string,string> = {
+        username: "Username tidak valid",
+        password:"Password tidak valid",
+        email: "Email tidak valid",
+        language: "Bahasa tidak valid",
+        purposeUsage: "Tujuan penggunaan tidak valid",
+        securityQuiz: "Pertanyaan keamanan tidak valid",
+        securityAnswer: "Jawaban keamanan tidak valid",
+      };
       const errors: ErrorValidationResponse[] = error.issues.map((e) => {
-        let notifMessage: string = "";
         const path = String(e.path[0]);
-
-        if (path === "username") notifMessage = "Username tidak valid";
-        else if (path === "password") notifMessage = "Password tidak valid";
-        else if (path === "email") notifMessage = "Email tidak valid";
-        else if (path === "language") notifMessage = "Bahasa tidak valid";
-        else if (path === "purposeUsage")
-          notifMessage = "Tujuan penggunaan tidak valid";
-        else if (path === "securityQuiz")
-          notifMessage = "Pertanyaan keamanan tidak valid";
-        else if (path === "securityAnswer")
-          notifMessage = "Jawaban keamanan tidak valid";
+        const notifMessage = notifMessages[path]
 
         return {
           message: e.message,
@@ -136,11 +102,24 @@ export function validateRegistration(
         };
       });
 
-      return { isValid: false, errors };
+      const response: BasicResponse<ErrorValidationResponse[]> = {
+        message: "Validasi gagal",
+        status: "error",
+        statusCode: STATUS_UNPROCESSABLE_ENTITY,
+        data:errors,
+      };
+
+      return response;
     }
   }
 
-  return { isValid: false, errors: null };
+  const response: BasicResponse={
+    message:"Validasi akun",
+    status: "success",
+    statusCode: STATUS_OK
+  }
+
+  return response;
 }
 
 export async function createDataUser(id: string) {
@@ -450,7 +429,7 @@ export const securityUpdate: AccountSecurityUpdateFunctions = {
     return result;
   },
   async newSecurityUpdate(question, answer, user, action) {
-    if(action === "create-new"){
+    if (action === "create-new") {
       if (user.privacy && user.privacy.securityQuiz) {
         const response: BasicResponse<null> = {
           message: "Akun sudah memiliki pertanyaan keamanan",
@@ -501,21 +480,21 @@ export const securityUpdate: AccountSecurityUpdateFunctions = {
       };
     }
 
-    const isCompared = await bcrypt.compare(oldPassword, user.password)
-    if(!isCompared){
-      return{
-        message:"Password lama tidak sama",
+    const isCompared = await bcrypt.compare(oldPassword, user.password);
+    if (!isCompared) {
+      return {
+        message: "Password lama tidak sama",
         status: "error",
-        statusCode: 400
-      }
+        statusCode: 400,
+      };
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    const finalData:AccountDB ={
+    const finalData: AccountDB = {
       ...user,
-      password: hashedPassword
-    }
+      password: hashedPassword,
+    };
 
     await supabase.from("user").update(finalData).eq("uid", user.uid);
 
@@ -523,7 +502,7 @@ export const securityUpdate: AccountSecurityUpdateFunctions = {
       message: "Ganti password berhasil",
       status: "success",
       statusCode: 200,
-      data: user
+      data: user,
     };
   },
 };

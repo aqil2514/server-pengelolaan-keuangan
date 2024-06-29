@@ -20,6 +20,7 @@ import {
 } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
+import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 
 const transactionRoute = express.Router();
 
@@ -116,7 +117,7 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
 
     if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
 
-    return res.status(422).json({ errors });
+    return res.status(STATUS_UNPROCESSABLE_ENTITY).json({ errors });
   }
 
   /**

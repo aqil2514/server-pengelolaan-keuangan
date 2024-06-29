@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import {
-  Account,
   AccountDB,
   AccountProfile,
   AccountRegister,
@@ -24,32 +23,39 @@ import {
   ErrorValidationResponse,
   HttpResponse,
 } from "../../@types/General";
-import { ZodError } from "zod";
-import { getUser, getUserWithPassword } from "../utils/general-utils";
+import { getUserWithPassword } from "../utils/general-utils";
 import { CD_SettingSecurityCore } from "../../@types/Setting";
+import { STATUS_OK, STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 const accountRoute = express.Router();
 
 accountRoute.post("/register", async (req: Request, res: Response) => {
   const data: AccountRegister = req.body;
 
   const validation = validateRegistration(data);
-  if (!validation.isValid) {
-    const result: AccountResponse[] = (validation.errors || []).map((d) => {
-      return {
-        success: false,
-        message: d.message,
-        path: d.path,
-        notifMessage: d.notifMessage,
-      };
-    });
+  if (validation.status === "error") {
+    const result: AccountResponse[] = (validation.data || []).map(
+      (d: AccountResponse) => {
+        return {
+          success: false,
+          message: d.message,
+          path: d.path,
+          notifMessage: d.notifMessage,
+        };
+      }
+    );
 
-    return res.status(422).json({ result });
+    return res.status(validation.statusCode as number).json({
+      message: "oke",
+      status: "error",
+      data: result,
+    } as BasicResponse<AccountResponse[]>);
   }
 
   const passwordValidation = validatePassword(
     data.password,
     data.confirmPassword
   );
+
   if (!passwordValidation.isSame) {
     const result: AccountResponse[] = [
       {
@@ -73,7 +79,11 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
         notifMessage: "Password sama dengan username",
       },
     ];
-    return res.status(422).json({ result });
+    return res.status(422).json({
+      message: "Password sama dengan username",
+      status: "error",
+      data: result,
+    } as BasicResponse<AccountResponse[]>);
   }
 
   const isThere = await supabase
@@ -90,7 +100,13 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
         notifMessage: "Akun sudah ada",
       },
     ];
-    return res.status(422).json({ result });
+    return res
+      .status(STATUS_UNPROCESSABLE_ENTITY)
+      .json({
+        message: "Akun sudah ada",
+        status: "error",
+        data: result,
+      } as BasicResponse<AccountResponse[]>);
   }
 
   const isThereEmail = await supabase
@@ -106,7 +122,13 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
         notifMessage: "Email sudah terdaftar",
       },
     ];
-    return res.status(422).json({ result });
+    return res
+      .status(STATUS_UNPROCESSABLE_ENTITY)
+      .json({
+        message: "Email sudah ada",
+        status: "error",
+        data: result,
+      } as BasicResponse<AccountResponse[]>);
   }
 
   const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -136,7 +158,7 @@ accountRoute.post("/register", async (req: Request, res: Response) => {
   await supabase.from("user").insert(finalData);
   await createDataUser(String(finalData.uid));
 
-  return res.status(200).json({ sucess: true });
+  return res.status(STATUS_OK).json({ message:"Akun berhasil dibuat", status:"success", data:null } as BasicResponse<null>);
 });
 
 accountRoute.post("/login", async (req: Request, res: Response) => {
@@ -382,61 +404,19 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
       const { statusCode } = changePassword;
 
       return res.status(Number(statusCode)).json(changePassword);
-    } else if(securityOption === "security-question-option"){
+    } else if (securityOption === "security-question-option") {
       const createNewQuiz = await securityUpdate.newSecurityUpdate(
         String(securityQuiz),
         securityAnswer,
         user,
         "update"
       );
-      console.log(createNewQuiz)
+      console.log(createNewQuiz);
       const { statusCode } = createNewQuiz;
 
       return res.status(Number(statusCode)).json(createNewQuiz);
     }
   }
-
-  // const user = await getUserWithPassword(uid);
-
-  // if (!user) throw new Error("User tidak ada");
-
-  // let hashedPassword: string = "";
-  // if (oldPassword) {
-  //   const isCompared = await bcrypt.compare(oldPassword, user.password);
-  //   if (!isCompared)
-  //     return res
-  //       .status(401)
-  //       .json({ status: "error", message: "Password Salah" } as BasicResponse);
-
-  //   if (!newPassword || !confirmNewPassword)
-  //     return res.status(422).json({
-  //       status: "error",
-  //       message: "Password baru belum diisi",
-  //     } as BasicResponse);
-
-  //   if (newPassword !== confirmNewPassword)
-  //     return res.status(422).json({
-  //       status: "error",
-  //       message: "Password baru tidak sama",
-  //     } as BasicResponse);
-
-  //   const hashed = await bcrypt.hash(newPassword, 10);
-  //   hashedPassword = hashed;
-  // }
-
-  // const finalData: AccountDB = {
-  //   uid,
-  //   config: user.config,
-  //   email: user.email,
-  //   username: user.username,
-  //   password: newPassword ? hashedPassword : oldPassword,
-  //   privacy: {
-  //     securityAnswer,
-  //     securityQuiz,
-  //   },
-  // } as AccountDB;
-
-  // await saveUser(finalData);
 
   return res.status(200).json({
     status: "success",
