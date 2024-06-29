@@ -22,7 +22,7 @@ export interface AccountSecurityProps {
 type securityOptionState = "password-option" | "security-question-option";
 
 export interface CD_SettingSecurityCore extends Security {
-  cta: "create-new-security" | "verify-security";
+  cta: "create-new-security" | "verify-security"|"change-security";
   securityData: AccountSecurityProps;
   securityOption: securityOptionState;
 }

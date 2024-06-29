@@ -357,8 +357,39 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
       const createNewQuiz = await securityUpdate.newSecurityUpdate(
         String(securityQuiz),
         securityAnswer,
+        user,
+        "create-new"
+      );
+      const { statusCode } = createNewQuiz;
+
+      return res.status(Number(statusCode)).json(createNewQuiz);
+    }
+  } else if (cta === "change-security") {
+    const {
+      oldPassword,
+      securityAnswer,
+      confirmNewPassword,
+      newPassword,
+      securityQuiz,
+    } = securityData;
+    if (securityOption === "password-option") {
+      const changePassword = await securityUpdate.updatePassword(
+        oldPassword,
+        String(newPassword),
+        String(confirmNewPassword),
         user
       );
+      const { statusCode } = changePassword;
+
+      return res.status(Number(statusCode)).json(changePassword);
+    } else if(securityOption === "security-question-option"){
+      const createNewQuiz = await securityUpdate.newSecurityUpdate(
+        String(securityQuiz),
+        securityAnswer,
+        user,
+        "update"
+      );
+      console.log(createNewQuiz)
       const { statusCode } = createNewQuiz;
 
       return res.status(Number(statusCode)).json(createNewQuiz);

@@ -357,103 +357,173 @@ const validation: ValidationFunction = {
 
     return null;
   },
+  validateNewPassword(
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ): string | null {
+    if (!oldPassword) return "Password lama belum diisi";
+    if (!newPassword) return "Password baru belum diisi";
+    if (!confirmPassword) return "Konfirmasi password baru belum diisi";
+
+    const oldPasswordValidation = this.validatePassword(oldPassword);
+    if (oldPasswordValidation) {
+      return `Password lama tidak valid: ${oldPasswordValidation}`;
+    }
+
+    const newPasswordValidation = this.validatePassword(newPassword);
+    if (newPasswordValidation) {
+      return `Password baru tidak valid: ${newPasswordValidation}`;
+    }
+
+    if (newPassword !== confirmPassword) {
+      return "Password baru dan konfirmasi password tidak cocok.";
+    }
+
+    if (oldPassword === newPassword) {
+      return "Password baru tidak boleh sama dengan password lama.";
+    }
+
+    return null;
+  },
 };
 
 /**
  * Function untuk mengatur update security user
  */
-  export const securityUpdate: AccountSecurityUpdateFunctions = {
-    async newPassword(password, confirmPassword, user) {
-      if (user.password) {
-        const result: BasicResponse = {
-          message: "Akun sudah memiliki password",
-          status: "error",
-          statusCode: 409,
-        };
-
-        return result;
-      }
-
-      const passwordValidation = validation.validatePassword(password);
-      if (passwordValidation) {
-        const result: BasicResponse = {
-          message: passwordValidation,
-          status: "error",
-          statusCode: 422,
-        };
-
-        return result;
-      }
-
-      const clientData = {
-        password,
-        confirmPassword,
-        user,
-      };
-
-      if (password !== confirmPassword) {
-        const result: BasicResponse<null> = {
-          message: "Password tidak sama",
-          status: "error",
-          statusCode: 400,
-        };
-
-        return result;
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const statusFlags: AccountStatusFlags = clientData.user.statusFlags;
-
-      statusFlags.isHavePassword = true;
-
-      await supabase
-        .from("user")
-        .update({ password: hashedPassword, statusFlags })
-        .eq("uid", clientData.user.uid);
-
-      const result: BasicResponse<AccountDB> = {
-        message: "Password baru berhasil dibuat",
-        status: "success",
-        data: clientData.user,
+export const securityUpdate: AccountSecurityUpdateFunctions = {
+  async newPassword(password, confirmPassword, user) {
+    if (user.password) {
+      const result: BasicResponse = {
+        message: "Akun sudah memiliki password",
+        status: "error",
+        statusCode: 409,
       };
 
       return result;
-    },
-    async newSecurityUpdate(question, answer, user) {
-  
-      if(user.privacy && user.privacy.securityQuiz){
-        const response:BasicResponse<null> = {
-          message:"Akun sudah memiliki pertanyaan keamanan",
+    }
+
+    const passwordValidation = validation.validatePassword(password);
+    if (passwordValidation) {
+      const result: BasicResponse = {
+        message: passwordValidation,
+        status: "error",
+        statusCode: 422,
+      };
+
+      return result;
+    }
+
+    const clientData = {
+      password,
+      confirmPassword,
+      user,
+    };
+
+    if (password !== confirmPassword) {
+      const result: BasicResponse<null> = {
+        message: "Password tidak sama",
+        status: "error",
+        statusCode: 400,
+      };
+
+      return result;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const statusFlags: AccountStatusFlags = clientData.user.statusFlags;
+
+    statusFlags.isHavePassword = true;
+
+    await supabase
+      .from("user")
+      .update({ password: hashedPassword, statusFlags })
+      .eq("uid", clientData.user.uid);
+
+    const result: BasicResponse<AccountDB> = {
+      message: "Password baru berhasil dibuat",
+      status: "success",
+      data: clientData.user,
+    };
+
+    return result;
+  },
+  async newSecurityUpdate(question, answer, user, action) {
+    if(action === "create-new"){
+      if (user.privacy && user.privacy.securityQuiz) {
+        const response: BasicResponse<null> = {
+          message: "Akun sudah memiliki pertanyaan keamanan",
           status: "error",
           statusCode: 409,
-          data: null
-        }
+          data: null,
+        };
         return response;
       }
+    }
 
-      const newUser:AccountDB = {
-        ...user,
-        privacy: {
-          ...user.privacy,
-          securityAnswer: answer,
-          securityQuiz: question
-        },
-        statusFlags: {
-          ...user.statusFlags,
-          isHaveSecurityQuiz: true
-        }
+    const newUser: AccountDB = {
+      ...user,
+      privacy: {
+        ...user.privacy,
+        securityAnswer: answer,
+        securityQuiz: question,
+      },
+      statusFlags: {
+        ...user.statusFlags,
+        isHaveSecurityQuiz: true,
+      },
+    };
+
+    await supabase.from("user").update(newUser).eq("uid", user.uid);
+
+    const result: BasicResponse<AccountDB> = {
+      message: "Keamanan berhasil diperbarui",
+      status: "success",
+      statusCode: 200,
+      data: newUser,
+    };
+
+    return result;
+  },
+  async updatePassword(oldPassword, newPassword, confirmNewPassword, user) {
+    const validationResult = validation.validateNewPassword(
+      oldPassword,
+      newPassword,
+      confirmNewPassword
+    );
+
+    if (validationResult) {
+      return {
+        message: validationResult,
+        status: "error",
+        statusCode: 422,
+      };
+    }
+
+    const isCompared = await bcrypt.compare(oldPassword, user.password)
+    if(!isCompared){
+      return{
+        message:"Password lama tidak sama",
+        status: "error",
+        statusCode: 400
       }
+    }
 
-      await supabase.from("user").update(newUser).eq("uid", user.uid);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      const result:BasicResponse<AccountDB> = {
-        message:"Keamanan berhasil diperbarui",
-        status:"success",
-        statusCode: 200,
-        data: newUser
-      }
+    const finalData:AccountDB ={
+      ...user,
+      password: hashedPassword
+    }
 
-      return result;
-    },
-  };
+    await supabase.from("user").update(finalData).eq("uid", user.uid);
+
+    return {
+      message: "Ganti password berhasil",
+      status: "success",
+      statusCode: 200,
+      data: user
+    };
+  },
+};

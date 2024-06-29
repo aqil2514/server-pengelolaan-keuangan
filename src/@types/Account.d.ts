@@ -56,11 +56,11 @@ export interface AccountResponse {
 }
 
 export interface AccountProfile extends Account {
-  uid: AccountDB["uid"],
-  currency: AccountDB["config"]["currency"],
-  language: AccountDB["config"]["language"],
-  purposeUsage: AccountDB["config"]["purposeUsage"],
-};
+  uid: AccountDB["uid"];
+  currency: AccountDB["config"]["currency"];
+  language: AccountDB["config"]["language"];
+  purposeUsage: AccountDB["config"]["purposeUsage"];
+}
 
 export interface AccountSecurityProps {
   OldPassword: string;
@@ -85,7 +85,7 @@ export type PurposeUsageType = "Individu" | "Organization";
 /**
  * Function untuk update keamanan user
  */
-export interface AccountSecurityUpdateFunctions{
+export interface AccountSecurityUpdateFunctions {
   /**
    * Membuat password baru
    * @param password Password
@@ -93,17 +93,37 @@ export interface AccountSecurityUpdateFunctions{
    * @param userId User ID
    * @returns Basic HTTP Response
    */
-  newPassword: (password:string, confirmPassword: string, user:AccountDB) => Promise<BasicResponse>;
+  newPassword: (
+    password: string,
+    confirmPassword: string,
+    user: AccountDB
+  ) => Promise<BasicResponse>;
   /**
-   * Membuat pertanyaan keamanan baru 
+   * Membuat pertanyaan keamanan baru
    * @param question Apa pertanyaan yang diinginkan?
    * @param answer Apa jawabannya?
    * @param user User yang mana?
-   * @returns 
+   * @returns
    */
-  newSecurityUpdate: (question:string, answer: string, user:AccountDB) => Promise<BasicResponse>;
+  newSecurityUpdate: (
+    question: string,
+    answer: string,
+    user: AccountDB,
+    action: "update" | "create-new"
+  ) => Promise<BasicResponse>;
+  updatePassword: (
+    oldPassword: string,
+    newPassword: string,
+    confirmNewPassword: string,
+    user: AccountDB
+  ) => Promise<BasicResponse>;
 }
 
 export interface ValidationFunction {
   validatePassword: (password: string) => string | null;
+  validateNewPassword(
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ): string | null;
 }
