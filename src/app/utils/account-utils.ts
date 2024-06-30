@@ -219,6 +219,10 @@ function isAccountDB(data: any): data is AccountDB {
   return data && typeof data.password === "string";
 }
 
+export function isUserData(data:any):data is AccountData{
+  return data && typeof data.userId === "string";
+}
+
 interface IsThereUserFunctionArgs {
   username: string;
   email: string;

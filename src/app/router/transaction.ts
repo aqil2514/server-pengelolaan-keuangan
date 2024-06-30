@@ -9,6 +9,8 @@ import {
   editTransactionData,
   encryptTransactionData,
   getTransactionData,
+  handleTransaction,
+  handleValidationError,
   transactionAllocation,
   validateTransaction,
 } from "../utils/transaction-utils";
@@ -21,6 +23,7 @@ import {
 import { AccountData } from "../../@types/Account";
 import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
 import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
+import { isUserData } from "../utils/account-utils";
 
 const transactionRoute = express.Router();
 
@@ -60,6 +63,9 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
     userId,
   } = formData;
 
+  /**
+   * *User Section Start
+   */
   const userData = await getUserData(userId);
 
   // Jika data user tidak ditemukan, buat data baru di database untuk user tersebut
@@ -76,44 +82,29 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
    */
 
   // Validasi transaksi
-  const validation = validateTransaction(formData);
+  // const validation = validateTransaction(formData);
 
-  if (!validation.isValid) {
-    const errors = validation.error?.issues.map((e) => {
-      const path = String(e.path[0]);
+  // if (!validation.isValid) {
+  //   const errors = handleValidationError(validation.error);
 
-      const notifMessage: Record<string, string> = {
-        typeTransaction: "Tipe transaksi tidak valid",
-        totalTransaction: "Nominal transaksi tidak valid",
-        dateTransaction: "Tanggal transaksi tidak valid",
-        categoryTransaction: "Kategori transaksi tidak valid",
-        assetsTransaction: "Asset transaksi tidak valid",
-        noteTransaction: "Item transaksi tidak valid",
-      };
+  //   if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
 
-      const error: ErrorValidationResponse = {
-        message: e.message,
-        path: e.path[0] as string,
-        notifMessage: notifMessage[path],
-      };
-
-      return error;
-    });
-
-    if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
-
-    return res
-      .status(STATUS_UNPROCESSABLE_ENTITY)
-      .json({
-        message: errors[0].message,
-        status: "error",
-        data: errors,
-      } as BasicResponse<ErrorValidationResponse[]>);
-  }
+  //   return res
+  //     .status(STATUS_UNPROCESSABLE_ENTITY)
+  //     .json({
+  //       message: errors[0].message,
+  //       status: "error",
+  //       data: errors,
+  //     } as BasicResponse<ErrorValidationResponse[]>);
+  // }
 
   /**
    * * Validation End
    */
+
+  if(typeTransaction === "Pemasukan") {
+    const handle = await handleTransaction.income(formData, userData as AccountData);
+  }
 
   const dataBody: TransactionBodyType = {
     uid: crypto.randomUUID(),
@@ -164,7 +155,7 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
       user_transaction: encryptData,
     };
 
-    const updateData = await supabase
+    await supabase
       .from("user_data")
       .update({ user_transaction: userTransactionData.user_transaction })
       .eq("userId", userTransactionData.userId);
@@ -172,7 +163,7 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
   /**
    * * Alokasi data End
    */
-  return res.status(200).json(validation);
+  return res.status(200).json({msg:"ok"});
 });
 
 transactionRoute.put("/", async (req: Request, res: Response) => {

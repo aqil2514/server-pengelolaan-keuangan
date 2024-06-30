@@ -1,53 +1,30 @@
 import { ZodError, ZodIssue, isValid, z } from "zod";
 import {
+  HandleTransactionProps,
+  TransactionBasicResponse,
   TransactionBodyType,
   TransactionFormData,
   TransactionType,
+  ValidateTransactionResult,
 } from "../../@types/Transaction";
 import { Account, AccountData } from "../../@types/Account";
 import CryptoJS from "crypto-js";
 import supabase from "../lib/db";
+import { TransactionFormDataSchema } from "../zodSchema/transaction";
+import { ErrorValidationResponse } from "../../@types/General";
+import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 
-export async function transactionAllocation(
-  transactionData: AccountData | null,
-  body: TransactionBodyType,
-  dateTransaction: string
-) {
-  if (!transactionData?.user_transaction) return;
+function addNewTransaction(dateTransaction:string, transactions:TransactionType[], body:TransactionBodyType){
+  const newDate: TransactionType = {
+    id: crypto.randomUUID(),
+    header: dateTransaction,
+    body: [],
+  };
 
-  let result: TransactionType[] = [];
+  newDate.body.push(body);
+  transactions.push(newDate);
 
-  const resource = String(transactionData.user_transaction);
-  const decryptData = CryptoJS.AES.decrypt(
-    resource,
-    transactionData.userId
-  ).toString(CryptoJS.enc.Utf8);
-  const transactions: TransactionType | TransactionType[] =
-    JSON.parse(decryptData);
-
-  if (Array.isArray(transactions)) result = transactions;
-  else result.push(transactions);
-
-  const selectedTransaction = result.find(
-    (d) => new Date(d.header).toISOString() === dateTransaction
-  );
-
-  if (!selectedTransaction) {
-    const newDate: TransactionType = {
-      id: crypto.randomUUID(),
-      header: dateTransaction,
-      body: [],
-    };
-
-    newDate.body.push(body);
-    result.push(newDate);
-
-    return result;
-  }
-
-  selectedTransaction.body.push(body);
-
-  return result;
+  return transactions;
 }
 
 export function editTransactionData(
@@ -134,6 +111,24 @@ export function editTransactionData(
   }
 }
 
+/**
+ * Fungsi untuk mengenkripsi data transaksi.
+ *
+ * @param transactionData - Data transaksi dalam bentuk string
+ * @param key - Kunci yang digunakan untuk enkripsi
+ * @returns Data transaksi terenkripsi dalam bentuk string
+ */
+export function encryptTransactionData(
+  transactionData: string,
+  key: string
+): string {
+  // Mengenkripsi data transaksi menggunakan enkripsi AES
+  const encryptData = CryptoJS.AES.encrypt(transactionData, key).toString();
+
+  // Mengembalikan data terenkripsi
+  return encryptData;
+}
+
 export const getDecryptedTransactionData = (
   encryptedData: string,
   uid: string
@@ -187,25 +182,64 @@ export function getTransactionData(
   return result;
 }
 
-/**
- * Fungsi untuk mengenkripsi data transaksi.
- *
- * @param transactionData - Data transaksi dalam bentuk string
- * @param key - Kunci yang digunakan untuk enkripsi
- * @returns Data transaksi terenkripsi dalam bentuk string
- */
-export function encryptTransactionData(
-  transactionData: string,
-  key: string
-): string {
-  // Mengenkripsi data transaksi menggunakan enkripsi AES
-  const encryptData = CryptoJS.AES.encrypt(transactionData, key).toString();
+export const handleTransaction: HandleTransactionProps = {
+  async income(formData, userData) {
+    const validation = validateTransaction(formData);
+    if (!validation.isValid) {
+      const errors = handleValidationError(validation.error);
 
-  // Mengembalikan data terenkripsi
-  return encryptData;
+      if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
+
+      const result: TransactionBasicResponse = {
+        message: errors[0].message,
+        status: "error",
+        statusCode: STATUS_UNPROCESSABLE_ENTITY,
+      };
+
+      return result;
+    }
+
+    const result: TransactionBasicResponse = {
+      message: "ok",
+      status: "success",
+    };
+
+    return result;
+  },
+};
+
+export function handleValidationError(
+  data: ZodError | null
+): ErrorValidationResponse[] | undefined {
+  if (!data) return;
+  const result = data.issues.map((e) => {
+    const path = String(e.path[0]);
+
+    const notifMessage: Record<string, string> = {
+      typeTransaction: "Tipe transaksi tidak valid",
+      totalTransaction: "Nominal transaksi tidak valid",
+      dateTransaction: "Tanggal transaksi tidak valid",
+      categoryTransaction: "Kategori transaksi tidak valid",
+      assetsTransaction: "Asset transaksi tidak valid",
+      noteTransaction: "Item transaksi tidak valid",
+    };
+
+    const error: ErrorValidationResponse = {
+      message: e.message,
+      path: e.path[0] as string,
+      notifMessage: notifMessage[path],
+    };
+
+    return error;
+  });
+
+  return result;
 }
 
-export async function saveTransactionData(transaction: TransactionType[], userId:string) {
+export async function saveTransactionData(
+  transaction: TransactionType[],
+  userId: string
+) {
   const data = encryptTransactionData(JSON.stringify(transaction), userId);
 
   const result = await supabase
@@ -216,42 +250,51 @@ export async function saveTransactionData(transaction: TransactionType[], userId
   return result;
 }
 
-const setToMidnight = (date: Date) => {
+export const setToMidnight = (date: Date) => {
   const newDate = new Date(date);
   newDate.setHours(0, 0, 0, 0);
   return newDate;
 };
 
-const TransactionFormDataSchema = z.object({
-  typeTransaction: z.enum(["Pemasukan", "Pengeluaran"], {
-    message: "Tipe transaksi tidak diizinkan",
-  }),
-  totalTransaction: z.number({ message: "Total transaksi harus berupa angka" }),
-  dateTransaction: z.coerce
-    .date({
-      message: "Transaksi harus berupa tanggal",
-      invalid_type_error: "Tanggal harus diisi",
-    })
-    .refine((date) => setToMidnight(date) <= setToMidnight(new Date()), {
-      message: "Transaksi tidak boleh dari masa depan",
-    }),
-  categoryTransaction: z.string().min(1, "Category transaksi belum diisi"),
-  assetsTransaction: z.string().min(1, "Aset transaksi belum diisi"),
-  noteTransaction: z.string().min(1, "Catatan transaksi belum diisi"),
-});
+export async function transactionAllocation(
+  transactionData: AccountData | null,
+  body: TransactionBodyType,
+  dateTransaction: string
+) {
+  if (!transactionData?.user_transaction) return;
 
-export function validateTransaction(formData: TransactionFormData) {
+  const resource = String(transactionData.user_transaction);
+
+  const transactions = getDecryptedTransactionData(
+    resource,
+    transactionData.userId
+  );
+
+  const selectedTransaction = transactions.find(
+    (d) => new Date(d.header).toISOString() === dateTransaction
+  );
+
+  if (!selectedTransaction) {
+    return addNewTransaction(dateTransaction, transactions, body)
+  }
+
+  selectedTransaction.body.push(body);
+
+  return transactions;
+}
+
+export function validateTransaction(
+  formData: TransactionFormData
+): ValidateTransactionResult {
   formData.dateTransaction = new Date(String(formData.dateTransaction));
 
   try {
     TransactionFormDataSchema.parse(formData);
-    return { isValid: true, errors: null };
+    return { isValid: true, error: null };
   } catch (error) {
     if (error instanceof ZodError) {
       return { isValid: false, error };
     }
   }
-
-  return { isValid: false };
+  return { isValid: false, error: null };
 }
-
