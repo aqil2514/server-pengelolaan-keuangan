@@ -1,4 +1,8 @@
-import { AssetsData } from "../../@types/Assets";
+import {
+  AssetDeleteOption,
+  AssetTransferData,
+  AssetsData,
+} from "../../@types/Assets";
 import supabase from "../lib/db";
 import CryptoJS from "crypto-js";
 import {
@@ -9,40 +13,9 @@ import {
 import { AccountData } from "../../@types/Account";
 import {
   getDecryptedTransactionData,
-  saveTransactionData,
+  saveTransaction,
 } from "./transaction-utils";
-import { TransactionType } from "../../@types/Transaction";
-
-// Interface untuk opsi penghapusan aset
-interface AssetDeleteOption {
-  /**
-   * Fungsi untuk menghapus transaksi yang berisi aset lama.
-   * @param clientData - Data klien yang dibutuhkan untuk dekripsi.
-   * @param encTransaction - Data transaksi terenkripsi.
-   * @param oldAsset - Nama aset lama yang ingin dihapus dari transaksi.
-   * @returns Promise yang menghasilkan array transaksi yang telah diperbarui.
-   */
-  deleteTransaction: (
-    clientData: string,
-    encTransaction: string,
-    oldAsset: string
-  ) => Promise<TransactionType[]>;
-
-  /**
-   * Fungsi untuk memindahkan transaksi dari aset lama ke aset baru.
-   * @param deleteOption - Opsi yang menunjukkan aset target untuk pemindahan.
-   * @param clientData - Data klien yang dibutuhkan untuk dekripsi.
-   * @param encTransaction - Data transaksi terenkripsi.
-   * @param oldAsset - Nama aset lama yang ingin dipindahkan.
-   * @returns Promise yang menghasilkan array transaksi yang telah diperbarui.
-   */
-  moveTransaction: (
-    deleteOption: string,
-    clientData: string,
-    encTransaction: string,
-    oldAsset: string
-  ) => Promise<TransactionType[]>;
-}
+import { TransactionBodyType } from "../../@types/Transaction";
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)
@@ -57,6 +30,29 @@ export const encryptAssets = (data: AssetsData[], uid: string) => {
   const encryptData = CryptoJS.AES.encrypt(stringData, uid).toString();
 
   return encryptData;
+};
+
+export const assetTransfer: AssetTransferData = {
+  decreaseFromAsset(formData, body) {
+    const fromAssetData: TransactionBodyType = {
+      ...body,
+      asset: formData.fromAsset,
+      category: "Pindah Aset",
+      price: -Math.abs(body.price),
+    };
+
+    return fromAssetData;
+  },
+  increaseToAsset(formData, body) {
+    const toAssetData: TransactionBodyType = {
+      ...body,
+      asset: formData.toAsset,
+      category: "Pindah Aset",
+      price: Math.abs(body.price),
+    };
+
+    return toAssetData;
+  },
 };
 
 export const assetDeleteOption: AssetDeleteOption = {
@@ -75,14 +71,12 @@ export const assetDeleteOption: AssetDeleteOption = {
       .map((transaction) => ({
         ...transaction,
         body: transaction.body.filter(
-          (bodyItem) =>
-            bodyItem.asset.trim() !==
-            oldAsset.trim()
+          (bodyItem) => bodyItem.asset.trim() !== oldAsset.trim()
         ),
       }))
       .filter((d) => d.body.length > 0);
 
-    await saveTransactionData(updatedAsset, clientData);
+    await saveTransaction.updateData(updatedAsset, clientData);
 
     return updatedAsset;
   },
@@ -123,7 +117,7 @@ export const assetDeleteOption: AssetDeleteOption = {
       return transaction;
     });
 
-    await saveTransactionData(updatedTransaction, clientData);
+    await saveTransaction.updateData(updatedTransaction, clientData);
 
     return updatedTransaction;
   },
@@ -155,7 +149,7 @@ export const changeAssetTransaction = async (
     return transaction;
   });
 
-  await saveTransactionData(updatedTransaction, clientId);
+  await saveTransaction.updateData(updatedTransaction, clientId);
 };
 
 /**

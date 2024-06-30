@@ -1,6 +1,7 @@
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 import { AccountData } from "./Account";
 import { BasicResponse } from "./General";
+import { TransactionFormDataSchema } from "../app/zodSchema/transaction";
 
 export interface ErrorsTransaction {
   type: string;
@@ -23,6 +24,13 @@ export interface HandleTransactionProps {
     dateTransaction: string,
     finalData: TransactionType
   ) => Promise<TransactionBasicResponse>;
+  transfer: (
+    formData: TransactionFormData,
+    userData: AccountData,
+    body: TransactionBodyType,
+    dateTransaction: string,
+    finalData: TransactionType
+  ) => Promise<TransactionBasicResponse>;
 }
 
 export interface TransactionBasicResponse extends BasicResponse<T> {}
@@ -35,15 +43,10 @@ export interface TransactionBodyType {
   price: number;
 }
 
-export interface TransactionType {
-  id?: string;
-  header: string;
-  body: TransactionBodyType[];
-}
-
 export interface TransactionFormData {
   userId: string;
   idTransaction: string;
+  billTransaction: number;
   uidTransaction: string;
   typeTransaction: TypeTransaction;
   totalTransaction: number;
@@ -57,9 +60,23 @@ export interface TransactionFormData {
   descriptionTransaction: string;
 }
 
+export type TransactionFormValidation = z.infer<typeof TransactionFormDataSchema>;
+
+export interface TransactionSaveFunctions{
+  updateData: (transaction: TransactionType[], userId: string) => Promise<void>;
+  newData: (dataBody: TransactionBodyType, finalData: TransactionType, userId: string) => Promise<void>;
+}
+
+export interface TransactionType {
+  id?: string;
+  header: string;
+  body: TransactionBodyType[];
+}
+
+export type TypeTransaction = "Pemasukan" | "Pengeluaran" | "Transfer";
+
 export interface ValidateTransactionResult {
   isValid: boolean;
   error: ZodError | null;
 }
 
-export type TypeTransaction = "Pemasukan" | "Pengeluaran" | "Transfer";

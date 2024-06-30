@@ -4,6 +4,8 @@ import {
   TransactionBasicResponse,
   TransactionBodyType,
   TransactionFormData,
+  TransactionFormValidation,
+  TransactionSaveFunctions,
   TransactionType,
   ValidateTransactionResult,
 } from "../../@types/Transaction";
@@ -13,11 +15,12 @@ import supabase from "../lib/db";
 import { TransactionFormDataSchema } from "../zodSchema/transaction";
 import { ErrorValidationResponse } from "../../@types/General";
 import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
+import { assetTransfer } from "./asset-utils";
 
 function addNewTransaction(
   dateTransaction: string,
   transactions: TransactionType[],
-  body: TransactionBodyType
+  bodies: TransactionBodyType | TransactionBodyType[]
 ) {
   const newDate: TransactionType = {
     id: crypto.randomUUID(),
@@ -25,7 +28,13 @@ function addNewTransaction(
     body: [],
   };
 
-  newDate.body.push(body);
+  if (Array.isArray(bodies)) {
+    for (const body of bodies) {
+      newDate.body.push(body);
+    }
+  } else {
+    newDate.body.push(bodies);
+  }
   transactions.push(newDate);
 
   return transactions;
@@ -189,7 +198,7 @@ export function getTransactionData(
 export const handleTransaction: HandleTransactionProps = {
   async income(formData, userData, dataBody, dateTransaction, finalData) {
     const { userId } = userData;
-    
+
     const validation = validateTransaction(formData);
     if (!validation.isValid) {
       const errors = handleValidationError(validation.error);
@@ -212,9 +221,9 @@ export const handleTransaction: HandleTransactionProps = {
       String(dateTransaction)
     );
     if (allocation) {
-      await saveTransactionData(allocation, userId);
+      await saveTransaction.updateData(allocation, userId);
     } else {
-      await saveNewTransaction(dataBody, finalData, userId);
+      await saveTransaction.newData(dataBody, finalData, userId);
     }
 
     const result: TransactionBasicResponse = {
@@ -233,6 +242,53 @@ export const handleTransaction: HandleTransactionProps = {
       finalData
     );
   },
+  async transfer(formData, userData, body, dateTransaction, finalData) {
+    const { userId } = userData;
+
+    const validation = validateTransaction(formData);
+    if (!validation.isValid) {
+      const errors = handleValidationError(validation.error);
+
+      if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
+
+      const result: TransactionBasicResponse = {
+        message: errors[0].message,
+        status: "error",
+        statusCode: STATUS_UNPROCESSABLE_ENTITY,
+        data: errors,
+      };
+
+      return result;
+    }
+
+    // Data untuk transaksi pengurangan saldo dari aset awal
+    const fromAssetData = assetTransfer.decreaseFromAsset(formData, body);
+
+    // Data untuk transaksi penambahan saldo ke aset tujuan
+    const toAssetData = assetTransfer.increaseToAsset(formData, body);
+
+    // Menambahkan data transaksi ke finalData
+    finalData.body.push(fromAssetData);
+    finalData.body.push(toAssetData);
+
+    const bodies:TransactionBodyType[] = [
+      fromAssetData,
+      toAssetData
+    ]
+
+    const allocation = await transactionAllocation(
+      userData,
+      bodies,
+      String(dateTransaction)
+    );
+    if (allocation) {
+      await saveTransaction.updateData(allocation, userId);
+    } else {
+      await saveTransaction.newData(body, finalData, userId);
+    }
+
+    return { message: "OK", status: "success" };
+  },
 };
 
 export function handleValidationError(
@@ -248,7 +304,10 @@ export function handleValidationError(
       dateTransaction: "Tanggal transaksi tidak valid",
       categoryTransaction: "Kategori transaksi tidak valid",
       assetsTransaction: "Asset transaksi tidak valid",
-      noteTransaction: "Item transaksi tidak valid",
+      noteTransaction: "Catatan transaksi tidak valid",
+      fromAsset: "Aset awal belum diisi",
+      toAsset: "Aset tujuan belum diisi",
+      sameAsset: "Aset awal dan aset tujuan tidak boleh sama",
     };
 
     const error: ErrorValidationResponse = {
@@ -279,8 +338,16 @@ export async function processData(
       dateTransaction,
       finalData
     );
+  else if (typeTransaction === "Pengeluaran")
+    return await handleTransaction.outcome(
+      formData,
+      userData,
+      dataBody,
+      dateTransaction,
+      finalData
+    );
 
-  return await handleTransaction.outcome(
+  return handleTransaction.transfer(
     formData,
     userData,
     dataBody,
@@ -289,42 +356,30 @@ export async function processData(
   );
 }
 
-export async function saveTransactionData(
-  transaction: TransactionType[],
-  userId: string
-) {
-  const data = encryptTransactionData(JSON.stringify(transaction), userId);
+export const saveTransaction: TransactionSaveFunctions = {
+  async updateData(transaction, userId) {
+    const data = encryptTransactionData(JSON.stringify(transaction), userId);
 
-  const result = await supabase
-    .from("user_data")
-    .update({ user_transaction: data })
-    .eq("userId", userId)
-    .select();
-  return result;
-}
+    await supabase
+      .from("user_data")
+      .update({ user_transaction: data })
+      .eq("userId", userId)
+      .select();
+  },
+  async newData(dataBody, finalData, userId) {
+    finalData.body.push(dataBody);
 
-export async function saveNewTransaction(
-  dataBody: TransactionBodyType,
-  finalData: TransactionType,
-  userId: string
-) {
-  finalData.body.push(dataBody);
+    const encryptedData = encryptTransactionData(
+      JSON.stringify(finalData),
+      userId
+    );
 
-  const encryptedData = CryptoJS.AES.encrypt(
-    JSON.stringify(finalData),
-    String(userId)
-  ).toString();
-
-  const userTransactionData: AccountData = {
-    userId: String(userId),
-    user_transaction: encryptedData,
-  };
-
-  await supabase
-    .from("user_data")
-    .update({ user_transaction: userTransactionData.user_transaction })
-    .eq("userId", userTransactionData.userId);
-}
+    await supabase
+      .from("user_data")
+      .update({ user_transaction: encryptedData })
+      .eq("userId", userId);
+  },
+};
 
 export const setToMidnight = (date: Date) => {
   const newDate = new Date(date);
@@ -334,7 +389,7 @@ export const setToMidnight = (date: Date) => {
 
 export async function transactionAllocation(
   transactionData: AccountData | null,
-  body: TransactionBodyType,
+  body: TransactionBodyType | TransactionBodyType[],
   dateTransaction: string
 ): Promise<TransactionType[] | undefined> {
   if (!transactionData?.user_transaction) return;
@@ -354,7 +409,13 @@ export async function transactionAllocation(
     return addNewTransaction(dateTransaction, transactions, body);
   }
 
-  selectedTransaction.body.push(body);
+  if(Array.isArray(body)){
+    for(const b of body){
+      selectedTransaction.body.push(b);
+    }
+  }else{
+    selectedTransaction.body.push(body);
+  }
 
   return transactions;
 }
@@ -373,4 +434,40 @@ export function validateTransaction(
     }
   }
   return { isValid: false, error: null };
+}
+
+export function validateTransferField(
+  data: TransactionFormValidation,
+  ctx: z.RefinementCtx
+) {
+  // Jika tipe transaksinya adalah "Transfer", fromAsset harus ada dan tidak boleh kosong
+  if (
+    data.typeTransaction === "Transfer" &&
+    (!data.fromAsset || data.fromAsset.trim() === "")
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Aset awal harus diisi untuk transaksi transfer",
+      path: ["fromAsset"], // Jalur kesalahan untuk pesan error
+    });
+  }
+
+  // Jika tipe transaksinya adalah "Transfer", toAsset harus ada dan tidak boleh kosong
+  if (
+    data.typeTransaction === "Transfer" &&
+    (!data.toAsset || data.toAsset.trim() === "")
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Aset tujuan harus diisi untuk transaksi transfer",
+      path: ["toAsset"],
+    });
+  }
+  if (data.typeTransaction === "Transfer" && data.toAsset === data.fromAsset) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Aset awal dan aset tujuan tidak boleh sama",
+      path: ["sameAsset"],
+    });
+  }
 }
