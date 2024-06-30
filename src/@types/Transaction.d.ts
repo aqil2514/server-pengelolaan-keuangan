@@ -11,7 +11,17 @@ export interface ErrorsTransaction {
 export interface HandleTransactionProps {
   income: (
     formData: TransactionFormData,
-    userData: AccountData
+    userData: AccountData,
+    body: TransactionBodyType,
+    dateTransaction: string,
+    finalData: TransactionType
+  ) => Promise<TransactionBasicResponse>;
+  outcome: (
+    formData: TransactionFormData,
+    userData: AccountData,
+    body: TransactionBodyType,
+    dateTransaction: string,
+    finalData: TransactionType
   ) => Promise<TransactionBasicResponse>;
 }
 
@@ -47,7 +57,7 @@ export interface TransactionFormData {
   descriptionTransaction: string;
 }
 
-export interface ValidateTransactionResult{
+export interface ValidateTransactionResult {
   isValid: boolean;
   error: ZodError | null;
 }

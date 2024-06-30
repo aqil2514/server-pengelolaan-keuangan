@@ -14,7 +14,11 @@ import { TransactionFormDataSchema } from "../zodSchema/transaction";
 import { ErrorValidationResponse } from "../../@types/General";
 import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 
-function addNewTransaction(dateTransaction:string, transactions:TransactionType[], body:TransactionBodyType){
+function addNewTransaction(
+  dateTransaction: string,
+  transactions: TransactionType[],
+  body: TransactionBodyType
+) {
   const newDate: TransactionType = {
     id: crypto.randomUUID(),
     header: dateTransaction,
@@ -183,7 +187,8 @@ export function getTransactionData(
 }
 
 export const handleTransaction: HandleTransactionProps = {
-  async income(formData, userData) {
+  async income(formData, userData, dataBody, dateTransaction, finalData) {
+    const { userId } = userData;
     const validation = validateTransaction(formData);
     if (!validation.isValid) {
       const errors = handleValidationError(validation.error);
@@ -194,9 +199,37 @@ export const handleTransaction: HandleTransactionProps = {
         message: errors[0].message,
         status: "error",
         statusCode: STATUS_UNPROCESSABLE_ENTITY,
+        data: errors,
       };
 
       return result;
+    }
+
+    const allocation = await transactionAllocation(
+      userData,
+      dataBody,
+      String(dateTransaction)
+    );
+    if (allocation) {
+      await saveTransactionData(allocation, userId);
+    } else {
+      await saveNewTransaction(dataBody, finalData, userId);
+      // finalData.body.push(dataBody);
+
+      // const encryptData = CryptoJS.AES.encrypt(
+      //   JSON.stringify(finalData),
+      //   String(userId)
+      // ).toString();
+
+      // const userTransactionData: AccountData = {
+      //   userId: String(userId),
+      //   user_transaction: encryptData,
+      // };
+
+      // await supabase
+      //   .from("user_data")
+      //   .update({ user_transaction: userTransactionData.user_transaction })
+      //   .eq("userId", userTransactionData.userId);
     }
 
     const result: TransactionBasicResponse = {
@@ -205,6 +238,15 @@ export const handleTransaction: HandleTransactionProps = {
     };
 
     return result;
+  },
+  async outcome(formData, userData, body, dateTransaction, finalData) {
+    return await this.income(
+      formData,
+      userData,
+      body,
+      dateTransaction,
+      finalData
+    );
   },
 };
 
@@ -236,6 +278,32 @@ export function handleValidationError(
   return result;
 }
 
+export async function processData(
+  typeTransaction: TransactionFormData["typeTransaction"],
+  formData: TransactionFormData,
+  userData: AccountData,
+  dataBody: TransactionBodyType,
+  dateTransaction: string,
+  finalData: TransactionType
+) {
+  if (typeTransaction === "Pemasukan")
+    return await handleTransaction.income(
+      formData,
+      userData,
+      dataBody,
+      dateTransaction,
+      finalData
+    );
+
+  return await handleTransaction.outcome(
+    formData,
+    userData,
+    dataBody,
+    dateTransaction,
+    finalData
+  );
+}
+
 export async function saveTransactionData(
   transaction: TransactionType[],
   userId: string
@@ -250,6 +318,29 @@ export async function saveTransactionData(
   return result;
 }
 
+export async function saveNewTransaction(
+  dataBody: TransactionBodyType,
+  finalData: TransactionType,
+  userId: string
+) {
+  finalData.body.push(dataBody);
+
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(finalData),
+    String(userId)
+  ).toString();
+
+  const userTransactionData: AccountData = {
+    userId: String(userId),
+    user_transaction: encryptedData,
+  };
+
+  await supabase
+    .from("user_data")
+    .update({ user_transaction: userTransactionData.user_transaction })
+    .eq("userId", userTransactionData.userId);
+}
+
 export const setToMidnight = (date: Date) => {
   const newDate = new Date(date);
   newDate.setHours(0, 0, 0, 0);
@@ -260,7 +351,7 @@ export async function transactionAllocation(
   transactionData: AccountData | null,
   body: TransactionBodyType,
   dateTransaction: string
-) {
+): Promise<TransactionType[] | undefined> {
   if (!transactionData?.user_transaction) return;
 
   const resource = String(transactionData.user_transaction);
@@ -275,7 +366,7 @@ export async function transactionAllocation(
   );
 
   if (!selectedTransaction) {
-    return addNewTransaction(dateTransaction, transactions, body)
+    return addNewTransaction(dateTransaction, transactions, body);
   }
 
   selectedTransaction.body.push(body);

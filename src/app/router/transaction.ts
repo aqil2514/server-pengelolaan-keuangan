@@ -11,6 +11,7 @@ import {
   getTransactionData,
   handleTransaction,
   handleValidationError,
+  processData,
   transactionAllocation,
   validateTransaction,
 } from "../utils/transaction-utils";
@@ -63,47 +64,10 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
     userId,
   } = formData;
 
-  /**
-   * *User Section Start
-   */
   const userData = await getUserData(userId);
 
-  // Jika data user tidak ditemukan, buat data baru di database untuk user tersebut
   if (!userData) {
     await supabase.from("user_data").insert({ userId });
-  }
-
-  /**
-   * * User Section End
-   */
-
-  /**
-   * * Validation Start
-   */
-
-  // Validasi transaksi
-  // const validation = validateTransaction(formData);
-
-  // if (!validation.isValid) {
-  //   const errors = handleValidationError(validation.error);
-
-  //   if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
-
-  //   return res
-  //     .status(STATUS_UNPROCESSABLE_ENTITY)
-  //     .json({
-  //       message: errors[0].message,
-  //       status: "error",
-  //       data: errors,
-  //     } as BasicResponse<ErrorValidationResponse[]>);
-  // }
-
-  /**
-   * * Validation End
-   */
-
-  if(typeTransaction === "Pemasukan") {
-    const handle = await handleTransaction.income(formData, userData as AccountData);
   }
 
   const dataBody: TransactionBodyType = {
@@ -123,47 +87,22 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
     body: [],
   };
 
-  /**
-   * * Alokasi data Start
-   */
-
-  const allocation = await transactionAllocation(
-    userData,
+  const processDataResult = await processData(
+    typeTransaction,
+    formData,
+    userData as AccountData,
     dataBody,
-    String(dateTransaction)
+    String(dateTransaction),
+    finalData
   );
-  if (allocation) {
-    const encryptData = CryptoJS.AES.encrypt(
-      JSON.stringify(allocation),
-      String(userId)
-    ).toString();
 
-    await supabase
-      .from("user_data")
-      .update({ user_transaction: encryptData })
-      .eq("userId", userId);
-  } else {
-    finalData.body.push(dataBody);
-
-    const encryptData = CryptoJS.AES.encrypt(
-      JSON.stringify(finalData),
-      String(userId)
-    ).toString();
-
-    const userTransactionData: AccountData = {
-      userId: String(userId),
-      user_transaction: encryptData,
-    };
-
-    await supabase
-      .from("user_data")
-      .update({ user_transaction: userTransactionData.user_transaction })
-      .eq("userId", userTransactionData.userId);
+  if (processDataResult.status === "error") {
+    return res
+      .status(processDataResult.statusCode as number)
+      .json(processDataResult);
   }
-  /**
-   * * Alokasi data End
-   */
-  return res.status(200).json({msg:"ok"});
+
+  return res.status(200).json({ msg: "ok" });
 });
 
 transactionRoute.put("/", async (req: Request, res: Response) => {
