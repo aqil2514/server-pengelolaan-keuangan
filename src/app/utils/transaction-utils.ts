@@ -189,6 +189,7 @@ export function getTransactionData(
 export const handleTransaction: HandleTransactionProps = {
   async income(formData, userData, dataBody, dateTransaction, finalData) {
     const { userId } = userData;
+    
     const validation = validateTransaction(formData);
     if (!validation.isValid) {
       const errors = handleValidationError(validation.error);
@@ -214,22 +215,6 @@ export const handleTransaction: HandleTransactionProps = {
       await saveTransactionData(allocation, userId);
     } else {
       await saveNewTransaction(dataBody, finalData, userId);
-      // finalData.body.push(dataBody);
-
-      // const encryptData = CryptoJS.AES.encrypt(
-      //   JSON.stringify(finalData),
-      //   String(userId)
-      // ).toString();
-
-      // const userTransactionData: AccountData = {
-      //   userId: String(userId),
-      //   user_transaction: encryptData,
-      // };
-
-      // await supabase
-      //   .from("user_data")
-      //   .update({ user_transaction: userTransactionData.user_transaction })
-      //   .eq("userId", userTransactionData.userId);
     }
 
     const result: TransactionBasicResponse = {
