@@ -19,7 +19,7 @@ import {
   synchronizeUserData,
 } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
-import { ErrorValidationResponse } from "../../@types/General";
+import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
 import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 
 const transactionRoute = express.Router();
@@ -60,22 +60,11 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
     userId,
   } = formData;
 
-  /**
-   * * User Section Start
-   */
-
-  // Temukan User
-  const user = await getUser(userId);
-
-  // Jika user tidak ditemukan, tampilkan pesan error
-  if (!user) throw new Error("Akun tidak ditemukan");
-
-  // Temukan data user
   const userData = await getUserData(userId);
 
   // Jika data user tidak ditemukan, buat data baru di database untuk user tersebut
   if (!userData) {
-    await supabase.from("user_data").insert({ userId: user.uid });
+    await supabase.from("user_data").insert({ userId });
   }
 
   /**
@@ -91,25 +80,21 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
 
   if (!validation.isValid) {
     const errors = validation.error?.issues.map((e) => {
-      let notifMessage: ErrorValidationResponse["notifMessage"] = "";
       const path = String(e.path[0]);
 
-      if (path === "typeTransaction")
-        notifMessage = "Tipe transaksi tidak valid";
-      else if (path === "totalTransaction")
-        notifMessage = "Nominal transaksi tidak valid";
-      else if (path === "dateTransaction")
-        notifMessage = "Tanggal transaksi tidak valid";
-      else if (path === "categoryTransaction")
-        notifMessage = "Kategori transaksi tidak valid";
-      else if (path === "assetsTransaction")
-        notifMessage = "Asset transaksi tidak valid";
-      else if (path === "noteTransaction")
-        notifMessage = "Item transaksi tidak valid";
+      const notifMessage: Record<string, string> = {
+        typeTransaction: "Tipe transaksi tidak valid",
+        totalTransaction: "Nominal transaksi tidak valid",
+        dateTransaction: "Tanggal transaksi tidak valid",
+        categoryTransaction: "Kategori transaksi tidak valid",
+        assetsTransaction: "Asset transaksi tidak valid",
+        noteTransaction: "Item transaksi tidak valid",
+      };
+
       const error: ErrorValidationResponse = {
         message: e.message,
         path: e.path[0] as string,
-        notifMessage,
+        notifMessage: notifMessage[path],
       };
 
       return error;
@@ -117,7 +102,13 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
 
     if (!errors) throw new Error("Terjadi kesalahan saat penanganan error");
 
-    return res.status(STATUS_UNPROCESSABLE_ENTITY).json({ errors });
+    return res
+      .status(STATUS_UNPROCESSABLE_ENTITY)
+      .json({
+        message: errors[0].message,
+        status: "error",
+        data: errors,
+      } as BasicResponse<ErrorValidationResponse[]>);
   }
 
   /**
@@ -153,27 +144,27 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
   if (allocation) {
     const encryptData = CryptoJS.AES.encrypt(
       JSON.stringify(allocation),
-      String(user.uid)
+      String(userId)
     ).toString();
 
     await supabase
       .from("user_data")
       .update({ user_transaction: encryptData })
-      .eq("userId", user.uid);
+      .eq("userId", userId);
   } else {
     finalData.body.push(dataBody);
 
     const encryptData = CryptoJS.AES.encrypt(
       JSON.stringify(finalData),
-      String(user.uid)
+      String(userId)
     ).toString();
 
     const userTransactionData: AccountData = {
-      userId: String(user.uid),
+      userId: String(userId),
       user_transaction: encryptData,
     };
 
-    const updateData= await supabase
+    const updateData = await supabase
       .from("user_data")
       .update({ user_transaction: userTransactionData.user_transaction })
       .eq("userId", userTransactionData.userId);
