@@ -63,7 +63,34 @@ export interface AssetProcessProps {
   /**
    * Membuat data baru
    * @param formData Data yang akan diproses
+   * @param userId ID usernya
    * @returns Data jadi
    */
-  createNew : (formData: AssetFormValues, userId:string) => Promise<BasicResponse<AssetsData>>;
+  createNew: (
+    formData: AssetFormValues,
+    userId: string
+  ) => Promise<BasicResponse<AssetsData>>;
+  /**
+   * Update data lama
+   * @param formData Data yang akan diproses
+   * @param userId ID usernya
+   * @returns Data jadi
+   */
+  updateData: (
+    formData: AssetFormValues,
+    userId: string
+  ) => Promise<BasicResponse<AssetsData>>;
+  /**
+   * Hapus data
+   * @param formData Data yang akan dihapus
+   * @param userId ID usernya
+   * @returns Data jadi
+   */
+  deleteData: (
+    assetName: string,
+    clientId: string,
+    deleteOption: DeleteOption
+  ) => Promise<BasicResponse<null>>;
 }
+
+export type DeleteOption = "delete-transaction" | "move-transaction";

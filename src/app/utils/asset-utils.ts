@@ -18,6 +18,13 @@ import {
 } from "./transaction-utils";
 import { TransactionBodyType } from "../../@types/Transaction";
 import { BasicResponse } from "../../@types/General";
+import {
+  STATUS_BAD_REQUEST,
+  STATUS_CONFLICT,
+  STATUS_NOT_FOUND,
+  STATUS_OK,
+  STATUS_UNPROCESSABLE_ENTITY,
+} from "../lib/httpStatusCodes";
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)
@@ -276,6 +283,7 @@ export const processAsset: AssetProcessProps = {
       const result: BasicResponse<AssetsData> = {
         message: "Nama Aset sudah ada",
         status: "error",
+        statusCode: STATUS_UNPROCESSABLE_ENTITY,
         data: {} as AssetsData,
       };
       return result;
@@ -298,6 +306,160 @@ export const processAsset: AssetProcessProps = {
       message: "Asset berhasil dibuat",
       status: "success",
       data: finalData,
+      statusCode: STATUS_OK,
+    };
+
+    return result;
+  },
+  async updateData(formData, userId) {
+    const {
+      assetCategory,
+      assetDescription,
+      assetName,
+      assetNominal,
+      oldAssetName,
+      newAssetCategory,
+    } = formData;
+
+    const finalData: AssetsData = {
+      name: assetName,
+      amount: assetNominal,
+      description: decodeURIComponent(assetDescription),
+      group: newAssetCategory ? newAssetCategory : assetCategory,
+    };
+
+    const userData = await getUserData(userId);
+
+    if (!userData) {
+      const result: BasicResponse<AssetsData> = {
+        message: "User tidak ditemukan",
+        status: "error",
+        data: {} as AssetsData,
+        statusCode: STATUS_NOT_FOUND,
+      };
+      return result;
+    }
+
+    const userAssetData = getDecryptedAssetData(
+      String(userData.user_assets),
+      userId
+    );
+
+    if (
+      assetName !== oldAssetName &&
+      userAssetData.find((asset) => asset.name.trim() === assetName.trim())
+    ) {
+      const result: BasicResponse<AssetsData> = {
+        message: "Nama Aset sudah ada",
+        status: "error",
+        data: {} as AssetsData,
+        statusCode: STATUS_CONFLICT,
+      };
+      return result;
+    }
+
+    const selectedIndex = userAssetData.findIndex(
+      (d) => d.name === oldAssetName
+    );
+
+    if (selectedIndex === -1) {
+      const result: BasicResponse<AssetsData> = {
+        message: "Data tidak ditemukan",
+        status: "error",
+        data: {} as AssetsData,
+        statusCode: STATUS_NOT_FOUND,
+      };
+      return result;
+    }
+    userAssetData[selectedIndex] = finalData;
+
+    if (assetName !== oldAssetName) {
+      await changeAssetTransaction(
+        oldAssetName,
+        assetName,
+        String(userData.user_transaction),
+        userData.userId
+      );
+    }
+
+    const encryptAssetData = encryptAssets(userAssetData, userId);
+
+    const saveData = await saveAssetData(encryptAssetData, userId);
+
+    if (saveData.error) {
+      const result: BasicResponse<AssetsData> = {
+        message: "Nama Aset sudah ada",
+        status: "error",
+        data: {} as AssetsData,
+        statusCode: STATUS_BAD_REQUEST,
+      };
+      return result;
+    }
+
+    const result: BasicResponse<AssetsData> = {
+      message: "Data berhasil diubah",
+      status: "success",
+      data: finalData,
+      statusCode: STATUS_OK,
+    };
+    return result;
+  },
+  async deleteData(assetName, clientId, deleteOption) {
+    const userData = await getUserData(String(clientId));
+
+    if (!userData) {
+      const result: BasicResponse<null> = {
+        message: "User tidak ditemukan",
+        statusCode: STATUS_NOT_FOUND,
+        status: "error",
+        data: null,
+      };
+
+      return result;
+    }
+
+    const userAssetData = getDecryptedAssetData(
+      String(userData.user_assets),
+      String(clientId)
+    );
+
+    const filteredAsset = userAssetData.filter((d) => d.name !== assetName);
+    const encryptAssetData = encryptAssets(filteredAsset, String(clientId));
+
+    if (deleteOption === "delete-transaction") {
+      await assetDeleteOption.deleteTransaction(
+        userData.userId,
+        String(userData.user_transaction),
+        String(assetName)
+      );
+    } else if (
+      deleteOption &&
+      String(deleteOption).includes("move-transaction")
+    ) {
+      await assetDeleteOption.moveTransaction(
+        String(deleteOption),
+        userData.userId,
+        String(userData.user_transaction),
+        String(assetName)
+      );
+    }
+
+    const saveData = await saveAssetData(encryptAssetData, String(clientId));
+    if (saveData.error) {
+      const result: BasicResponse<null> = {
+        message: "Terjadi kesalahan saat menyimpan data",
+        status: "error",
+        data: null,
+        statusCode: STATUS_BAD_REQUEST,
+      };
+      return result;
+    }
+
+    const result: BasicResponse<null> = {
+      message: "Aset berhasil dihapus",
+      status: "success",
+      data: null,
+      statusCode: STATUS_OK,
     };
 
     return result;
