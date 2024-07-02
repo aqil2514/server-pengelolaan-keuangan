@@ -1,3 +1,5 @@
+import { BasicResponse } from "./General";
+
 export interface AssetsData {
   group: string;
   amount: number;
@@ -54,4 +56,14 @@ export interface AssetTransferData {
     formData: TransactionFormData,
     body: TransactionBodyType
   ) => TransactionBodyType;
+}
+
+/** Interface untuk memproses data aset */
+export interface AssetProcessProps {
+  /**
+   * Membuat data baru
+   * @param formData Data yang akan diproses
+   * @returns Data jadi
+   */
+  createNew : (formData: AssetFormValues, userId:string) => Promise<BasicResponse<AssetsData>>;
 }

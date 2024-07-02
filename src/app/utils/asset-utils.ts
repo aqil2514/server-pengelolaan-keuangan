@@ -1,5 +1,6 @@
 import {
   AssetDeleteOption,
+  AssetProcessProps,
   AssetTransferData,
   AssetsData,
 } from "../../@types/Assets";
@@ -16,6 +17,7 @@ import {
   saveTransaction,
 } from "./transaction-utils";
 import { TransactionBodyType } from "../../@types/Transaction";
+import { BasicResponse } from "../../@types/General";
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)
@@ -250,6 +252,56 @@ export const getOrCreateUserData = async (
     .then((data) => data.data![0]);
 
   return data;
+};
+
+export const processAsset: AssetProcessProps = {
+  async createNew(formData, userId) {
+    const {
+      assetName,
+      assetNominal,
+      assetCategory,
+      newAssetCategory,
+      assetDescription,
+    } = formData;
+
+    const userData = await getUserData(userId);
+    const userAssetData = getDecryptedAssetData(
+      String(userData?.user_assets),
+      userId
+    );
+
+    let assetGroup = newAssetCategory ? newAssetCategory : assetCategory;
+
+    if (userAssetData.find((asset) => asset.name.trim() === assetName.trim())) {
+      const result: BasicResponse<AssetsData> = {
+        message: "Nama Aset sudah ada",
+        status: "error",
+        data: {} as AssetsData,
+      };
+      return result;
+    }
+
+    const finalData: AssetsData = {
+      name: assetName,
+      amount: assetNominal,
+      description: decodeURIComponent(assetDescription),
+      group: assetGroup,
+    };
+
+    userAssetData.push(finalData);
+
+    const encAssetData = encryptAssets(userAssetData, userId);
+
+    await saveAssetData(encAssetData, userId);
+
+    const result: BasicResponse<AssetsData> = {
+      message: "Asset berhasil dibuat",
+      status: "success",
+      data: finalData,
+    };
+
+    return result;
+  },
 };
 
 /**

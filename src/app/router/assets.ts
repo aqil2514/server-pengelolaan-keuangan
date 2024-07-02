@@ -5,12 +5,15 @@ import {
   encryptAssets,
   getDecryptedAssetData,
   getOrCreateUserData,
+  processAsset,
   saveAssetData,
 } from "../utils/asset-utils";
 import { AssetFormValues, AssetsData } from "../../@types/Assets";
 import { getUserData } from "../utils/general-utils";
 import { getTransactionData } from "../utils/transaction-utils";
 import { TransactionType } from "../../@types/Transaction";
+import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
+import { BasicResponse } from "../../@types/General";
 
 const assetsRouter = express.Router();
 
@@ -41,32 +44,22 @@ assetsRouter.post("/", async (req: Request, res: Response) => {
   } = formData;
   const userId: string = req.body.userId;
 
-  const userData = await getUserData(userId);
-  const userAssetData = getDecryptedAssetData(
-    String(userData?.user_assets),
-    userId
-  );
-
-  let assetGroup = newAssetCategory ? newAssetCategory : assetCategory;
-
-  if(userAssetData.find((asset) => asset.name.trim() === assetName.trim())){
-    return res.status(409).json({success:false, message: "Nama Aset sudah ada"});
+  const finalData = await processAsset.createNew(formData, userId);
+  if (finalData.status === "error") {
+    return res.status(STATUS_UNPROCESSABLE_ENTITY).json({
+      message: finalData.message,
+      data: finalData.data,
+      status: finalData.status,
+    } as BasicResponse<AssetsData>);
   }
 
-  const finalData: AssetsData = {
-    name: assetName,
-    amount: assetNominal,
-    description: decodeURIComponent(assetDescription),
-    group: assetGroup,
-  };
-
-  userAssetData.push(finalData);
-
-  const encAssetData = encryptAssets(userAssetData, userId);
-
-  await saveAssetData(encAssetData, userId);
-
-  return res.status(200).json({ success: true, message: "Aset berhasil ditambah" });
+  return res
+    .status(200)
+    .json({
+      status: finalData.status,
+      message: finalData.message,
+      data: finalData.data,
+    } as BasicResponse<AssetsData>);
 });
 
 assetsRouter.put("/", async (req: Request, res: Response) => {
@@ -91,15 +84,19 @@ assetsRouter.put("/", async (req: Request, res: Response) => {
   const userData = await getUserData(clientId);
 
   if (!userData) return res.status(404).json({ msg: "User tidak ditemukan" });
-  
 
   const userAssetData = getDecryptedAssetData(
     String(userData.user_assets),
     clientId
   );
 
-  if(assetName !== oldAssetName && userAssetData.find((asset) => asset.name.trim() === assetName.trim())){
-    return res.status(409).json({success:false, message: "Nama Aset sudah ada"});
+  if (
+    assetName !== oldAssetName &&
+    userAssetData.find((asset) => asset.name.trim() === assetName.trim())
+  ) {
+    return res
+      .status(409)
+      .json({ success: false, message: "Nama Aset sudah ada" });
   }
 
   const selectedIndex = userAssetData.findIndex((d) => d.name === oldAssetName);
