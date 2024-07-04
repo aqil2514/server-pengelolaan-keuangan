@@ -330,6 +330,7 @@ export async function processData(
   dateTransaction: string,
   finalData: TransactionType
 ) {
+
   if (typeTransaction === "Pemasukan")
     return await handleTransaction.income(
       formData,

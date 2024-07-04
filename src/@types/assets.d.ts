@@ -1,18 +1,32 @@
 import { BasicResponse } from "./General";
 
+/** Interface untuk data aset */
 export interface AssetsData {
+  /** Pengelompokan aset */
   group: string;
+  /** Total awal aset */
   amount: number;
+  /** Deskripsi aset */
   description: string;
+  /** Nama aset */
   name: string;
 }
 
+/**
+ * Data asset yang diambil dari form
+ */
 export interface AssetFormValues {
+  /** Nama aset lama */
   oldAssetName: string;
+  /** Nama aset */
   assetName: string;
+  /** Nominal awal aset */
   assetNominal: number;
+  /** Kategori aset */
   assetCategory: string;
+  /** Kategori baru aset */
   newAssetCategory?: string;
+  /** Deskripsi aset */
   assetDescription: string;
 }
 
@@ -47,11 +61,24 @@ export interface AssetDeleteOption {
   ) => Promise<TransactionType[]>;
 }
 
+/** Interface untuk kelola pemindahan aset */
 export interface AssetTransferData {
+  /**
+   * Kurangi atau hapus aset tertentu. Digunakan untuk pemindahan aset
+   * @param formData Form Data
+   * @param body Transaksi Body
+   * @returns Bentuk utuh transaksinya
+   */
   decreaseFromAsset: (
     formData: TransactionFormData,
     body: TransactionBodyType
   ) => TransactionBodyType;
+  /**
+   * Tambah atau pindahkan ke tujuan aset tertentu. Digunakan untuk pemindahan aset
+   * @param formData Form Data
+   * @param body Transaksi Body
+   * @returns Bentuk utuh transaksinya
+   */
   increaseToAsset: (
     formData: TransactionFormData,
     body: TransactionBodyType
@@ -93,4 +120,9 @@ export interface AssetProcessProps {
   ) => Promise<BasicResponse<null>>;
 }
 
+/**
+ * Opsi untuk langkah selanjutnya yang akan dilakukan saat penghapusan aset
+ * - delete-transaction : Hapus semua transaksi pada aset yang dipilih
+ * - move-transaction : Pindahkan semua transaksi yang ada pada suatu aset
+ */
 export type DeleteOption = "delete-transaction" | "move-transaction";

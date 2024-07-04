@@ -14,9 +14,14 @@ import {
 import { AccountData } from "../../@types/Account";
 import {
   getDecryptedTransactionData,
+  processData,
   saveTransaction,
 } from "./transaction-utils";
-import { TransactionBodyType } from "../../@types/Transaction";
+import {
+  TransactionBodyType,
+  TransactionFormData,
+  TransactionType,
+} from "../../@types/Transaction";
 import { BasicResponse } from "../../@types/General";
 import {
   STATUS_BAD_REQUEST,
@@ -198,58 +203,7 @@ export const getOrCreateUserData = async (
   // Mengambil data pengguna dari database
   const userData = await getUserData(uid);
 
-  // Mendekripsi data aset pengguna
-  const decryptAsset = getDecryptedAssetData(
-    String(userData?.user_assets),
-    uid
-  );
-
-  // Jika data pengguna tidak ada atau data aset kosong, buat koleksi aset awal
-  if (!userData || !userData.user_assets || decryptAsset.length === 0) {
-    const assetCollections = [
-      {
-        name: "Dompet Kebutuhan",
-        amount: 0,
-        description: "Uang khusus untuk kebutuhan",
-        group: "Tunai",
-      },
-      {
-        name: "Dompet Keinginan",
-        amount: 0,
-        description: "Uang khusus untuk keinginan",
-        group: "Tunai",
-      },
-      {
-        name: "Dompet Transportasi",
-        amount: 0,
-        description: "Uang khusus untuk transportasi",
-        group: "Tunai",
-      },
-    ];
-    // Mengenkripsi koleksi aset awal
-    const encryptAssets = CryptoJS.AES.encrypt(
-      JSON.stringify(assetCollections),
-      uid
-    ).toString();
-
-    // Menambahkan data pengguna baru jika pengguna tidak ada dalam database
-    if (!userData) {
-      await supabase
-        .from("user_data")
-        .insert({ userId: uid, user_assets: encryptAssets });
-    }
-    // Memperbarui data pengguna jika pengguna ada tapi tidak memiliki data aset atau data aset terdekripsi kosong
-    else if (!userData.user_assets || decryptAsset.length === 0) {
-      await supabase
-        .from("user_data")
-        .update({ user_assets: encryptAssets })
-        .eq("userId", uid);
-    }
-  }
-  // Menyinkronkan data pengguna yang ada
-  else {
-    await synchronizeUserData(userData, uid);
-  }
+  await synchronizeUserData(userData, uid);
 
   // Mengambil data pengguna yang diperbarui atau baru dibuat dari database
   const data = await supabase
@@ -288,6 +242,45 @@ export const processAsset: AssetProcessProps = {
       };
       return result;
     }
+
+    const formTransaction: TransactionFormData = {
+      dateTransaction: new Date(),
+      noteTransaction: "Modal awal",
+      typeTransaction: "Pemasukan",
+      totalTransaction: assetNominal,
+      assetsTransaction: assetName ,
+      categoryTransaction: "Modal",
+      userId,
+    };
+
+    const transactionBody: TransactionBodyType = {
+      uid: crypto.randomUUID(),
+      asset: assetName,
+      category: "Modal",
+      item: "Uang awal",
+      price:
+        formTransaction.typeTransaction === "Pemasukan"
+          ? Number(assetNominal)
+          : Number(assetNominal) * -1,
+    };
+  
+    const transactionFinalData: TransactionType = {
+      id: crypto.randomUUID(),
+      header: String(new Date()),
+      body: [],
+    };
+
+    transactionFinalData.body.push(transactionBody)
+
+
+    const processDataResult = await processData(
+      formTransaction.typeTransaction,
+      formTransaction,
+      userData as AccountData,
+      transactionBody,
+      String(formTransaction.dateTransaction),
+      transactionFinalData
+    );
 
     const finalData: AssetsData = {
       name: assetName,

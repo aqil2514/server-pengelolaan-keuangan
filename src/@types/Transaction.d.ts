@@ -45,19 +45,19 @@ export interface TransactionBodyType {
 
 export interface TransactionFormData {
   userId: string;
-  idTransaction: string;
-  billTransaction: number;
-  uidTransaction: string;
+  idTransaction?: string;
+  billTransaction?: number;
+  uidTransaction?: string;
   typeTransaction: TypeTransaction;
   totalTransaction: number;
   dateTransaction: Date;
   categoryTransaction: string;
   assetsTransaction: string;
   noteTransaction: string;
-  price: number;
-  fromAsset: string;
-  toAsset: string;
-  descriptionTransaction: string;
+  price?: number;
+  fromAsset?: string;
+  toAsset?: string;
+  descriptionTransaction?: string;
 }
 
 export type TransactionFormValidation = z.infer<typeof TransactionFormDataSchema>;

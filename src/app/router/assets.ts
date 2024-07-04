@@ -21,6 +21,9 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
   const uid = String(req.query.uid);
 
   const userData = await getOrCreateUserData(uid);
+  // const userData = await getUserData(uid);
+
+  if(!userData) throw new Error("User data tidak ada")
 
   const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
 
