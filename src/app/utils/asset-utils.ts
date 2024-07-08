@@ -1,9 +1,3 @@
-import {
-  AssetDeleteOption,
-  AssetProcessProps,
-  AssetTransferData,
-  AssetsData,
-} from "../../@types/Assets";
 import supabase from "../lib/db";
 import CryptoJS from "crypto-js";
 import {
@@ -11,25 +5,22 @@ import {
   synchronizeUserData,
   toCapitalizeWords,
 } from "./general-utils";
-import { AccountData } from "../../@types/Account";
 import {
   getDecryptedTransactionData,
   processData,
   saveTransaction,
 } from "./transaction-utils";
 import {
-  TransactionBodyType,
-  TransactionFormData,
-  TransactionType,
-} from "../../@types/Transaction";
-import { BasicResponse } from "../../@types/General";
-import {
   STATUS_BAD_REQUEST,
   STATUS_CONFLICT,
   STATUS_NOT_FOUND,
   STATUS_OK,
   STATUS_UNPROCESSABLE_ENTITY,
-} from "../lib/httpStatusCodes";
+} from "@lib/httpStatusCodes";
+import { AccountData } from "@customTypes/Account";
+import { AssetDeleteOption, AssetProcessProps, AssetsData, AssetTransferData } from "@customTypes/Assets";
+import { TransactionBodyType, TransactionFormData, TransactionType } from "@customTypes/Transaction";
+import { BasicResponse } from "@customTypes/General";
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)
