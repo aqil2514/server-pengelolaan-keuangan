@@ -200,7 +200,6 @@ export async function createDataUser(id: string) {
 
 export async function saveUser(data: AccountUser | AccountDB) {
   if (isAccountDB(data)) {
-    console.log(data);
     const resultSaving = await supabase
       .from("user")
       .update(data)

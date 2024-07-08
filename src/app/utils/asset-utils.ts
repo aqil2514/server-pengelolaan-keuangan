@@ -273,12 +273,12 @@ export const processAsset: AssetProcessProps = {
     transactionFinalData.body.push(transactionBody)
 
 
-    const processDataResult = await processData(
+    await processData(
       formTransaction.typeTransaction,
       formTransaction,
       userData as AccountData,
       transactionBody,
-      String(formTransaction.dateTransaction),
+      formTransaction.dateTransaction.toISOString(),
       transactionFinalData
     );
 

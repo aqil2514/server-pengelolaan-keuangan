@@ -411,7 +411,6 @@ accountRoute.put("/security", async (req: Request, res: Response) => {
         user,
         "update"
       );
-      console.log(createNewQuiz);
       const { statusCode } = createNewQuiz;
 
       return res.status(Number(statusCode)).json(createNewQuiz);
