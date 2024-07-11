@@ -13,7 +13,6 @@ import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
 import { AssetsData } from "../../@types/Assets";
 import { encryptAssets } from "./asset-utils";
 import supabase from "../lib/db";
-import { TransactionType } from "../../@types/Transaction";
 import { encryptTransactionData } from "./transaction-utils";
 import bcrypt from "bcrypt";
 import {
@@ -21,6 +20,7 @@ import {
   accountRegisterSchema,
 } from "../zodSchema/account";
 import { STATUS_OK, STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
+import { TransactionType } from "@customTypes/Transaction";
 
 interface ValidationResponse {
   isValid: boolean;

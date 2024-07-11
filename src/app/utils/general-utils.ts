@@ -5,6 +5,20 @@ import supabase from "../lib/db";
 import { encryptAssets, getDecryptedAssetData } from "./asset-utils";
 import { getDecryptedTransactionData } from "./transaction-utils";
 
+/**
+ * Menghasilkan hex color number secara random
+ * @returns {string} Hex Color Number
+ */
+export function getRandomHexColor(): string {
+  const hexCharacters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i = 0; i < 6; i++) {
+    const randomIndex = Math.floor(Math.random() * hexCharacters.length);
+    color += hexCharacters[randomIndex];
+  }
+  return color;
+}
+
 export async function getUser(id: string) {
   const res = await supabase.from("user").select("*").eq("uid", id);
 
@@ -16,7 +30,7 @@ export async function getUser(id: string) {
     privacy: proc.privacy,
     email: proc.email,
     config: proc.config,
-    statusFlags: proc.statusFlags
+    statusFlags: proc.statusFlags,
   };
 
   return user;
@@ -27,7 +41,7 @@ export async function getUserWithPassword(id: string) {
 
   const user: AccountDB = res.data![0];
 
-  return user
+  return user;
 }
 
 export async function getUserData(id: string) {
@@ -39,13 +53,19 @@ export async function getUserData(id: string) {
 }
 
 // TODO : Bikin penanganan gimana kalo asset dari user itu masih kosong
-export async function synchronizeUserData(data: AccountData, uid:string) {
-  let decryptTransaction:TransactionType[] = []
-  const decryptAsset = getDecryptedAssetData(String(data.user_assets), data.userId);
-  const dataTrasaction = getDecryptedTransactionData(String(data.user_transaction), data.userId);
-  
-  if(Array.isArray(dataTrasaction)) decryptTransaction = dataTrasaction;
-  else{
+export async function synchronizeUserData(data: AccountData, uid: string) {
+  let decryptTransaction: TransactionType[] = [];
+  const decryptAsset = getDecryptedAssetData(
+    String(data.user_assets),
+    data.userId
+  );
+  const dataTrasaction = getDecryptedTransactionData(
+    String(data.user_transaction),
+    data.userId
+  );
+
+  if (Array.isArray(dataTrasaction)) decryptTransaction = dataTrasaction;
+  else {
     decryptTransaction.push(dataTrasaction);
   }
 
@@ -71,21 +91,33 @@ export async function synchronizeUserData(data: AccountData, uid:string) {
   uniqueAssetNames.forEach((assetName) => {
     // Mencari transaksi yang berkaitan dengan aset
     const relatedTransactions = decryptTransaction.filter((transaction) =>
-      transaction.body.some((transactionItem) => transactionItem.asset.trim() === assetName)
+      transaction.body.some(
+        (transactionItem) => transactionItem.asset.trim() === assetName
+      )
     );
 
     // Menghitung jumlah total aset dan mencari deskripsi aset
-    const amountSum = relatedTransactions.flatMap((transaction) =>
-      transaction.body.filter((transactionItem) => transactionItem.asset.trim() === assetName)
-    ).reduce((acc, curr) => acc + curr.price, 0);
+    const amountSum = relatedTransactions
+      .flatMap((transaction) =>
+        transaction.body.filter(
+          (transactionItem) => transactionItem.asset.trim() === assetName
+        )
+      )
+      .reduce((acc, curr) => acc + curr.price, 0);
 
-    const descriptionAsset = decryptAsset.find((asset) => asset.name.trim() === assetName)?.description;
-    const groupAsset = decryptAsset.find((asset) => asset.name.trim() === assetName)?.group;
+    const descriptionAsset = decryptAsset.find(
+      (asset) => asset.name.trim() === assetName
+    )?.description;
+    const groupAsset = decryptAsset.find(
+      (asset) => asset.name.trim() === assetName
+    )?.group;
 
     const assetItem: AssetsData = {
       name: assetName,
       amount: amountSum,
-      description: descriptionAsset ? descriptionAsset : "Aset belum diberi deskripsi",
+      description: descriptionAsset
+        ? descriptionAsset
+        : "Aset belum diberi deskripsi",
       group: groupAsset ? groupAsset : "Aset belum diberi kategori",
     };
 
@@ -93,8 +125,11 @@ export async function synchronizeUserData(data: AccountData, uid:string) {
   });
 
   const encryptData = encryptAssets(updatedAsset, uid).toString();
-  
-  return await supabase.from("user_data").update({user_assets:encryptData}).eq("userId", uid);
+
+  return await supabase
+    .from("user_data")
+    .update({ user_assets: encryptData })
+    .eq("userId", uid);
 }
 
 /**

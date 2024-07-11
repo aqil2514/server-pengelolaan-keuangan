@@ -1,4 +1,8 @@
 {
+  "ts-node": {
+        // Do not forget to `npm i -D tsconfig-paths`
+        "require": ["tsconfig-paths/register"]
+    },
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig to read more about this file */
 
@@ -31,7 +35,7 @@
     "baseUrl": ".",                                  /* Specify the base directory to resolve non-relative module names. */
     "paths": {
       "@customTypes/*" : ["src/@types/*"],
-      "@lib/*" : ["src/app/lib/*"],
+      "@/*" : ["./src/app/*"],
     },                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */

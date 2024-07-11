@@ -16,10 +16,19 @@ import {
   STATUS_NOT_FOUND,
   STATUS_OK,
   STATUS_UNPROCESSABLE_ENTITY,
-} from "@lib/httpStatusCodes";
+} from "@/lib/httpStatusCodes";
 import { AccountData } from "@customTypes/Account";
-import { AssetDeleteOption, AssetProcessProps, AssetsData, AssetTransferData } from "@customTypes/Assets";
-import { TransactionBodyType, TransactionFormData, TransactionType } from "@customTypes/Transaction";
+import {
+  AssetDeleteOption,
+  AssetProcessProps,
+  AssetsData,
+  AssetTransferData,
+} from "@customTypes/Assets";
+import {
+  TransactionBodyType,
+  TransactionFormData,
+  TransactionType,
+} from "@customTypes/Transaction";
 import { BasicResponse } from "@customTypes/General";
 
 /**
@@ -127,6 +136,26 @@ export const assetDeleteOption: AssetDeleteOption = {
     return updatedTransaction;
   },
 };
+
+export function calculatePercent(
+  allData: AssetsData[],
+  currentData: AssetsData
+): number {
+  // *Jumlahkan semua nominal pada data
+  const allNominal = allData.reduce((acc, curr) => {
+    const result = acc + curr.amount;
+    return result;
+  }, 0);
+
+   // *Jika semua nominalnya adalah 0, kembalikan 0 untuk menghindari pembagian dengan 0
+   if (allNominal === 0) return 0;
+
+  // *Ambil nominal dari currentData dan hitung persentasenya
+  const selectedNominal = currentData.amount;
+  const percent = (selectedNominal / allNominal) * 100;
+
+  return parseFloat(percent.toFixed(2));
+}
 
 export const changeAssetTransaction = async (
   oldAssetName: string,
@@ -239,7 +268,7 @@ export const processAsset: AssetProcessProps = {
       noteTransaction: "Modal awal",
       typeTransaction: "Pemasukan",
       totalTransaction: assetNominal,
-      assetsTransaction: assetName ,
+      assetsTransaction: assetName,
       categoryTransaction: "Modal",
       userId,
     };
@@ -254,15 +283,14 @@ export const processAsset: AssetProcessProps = {
           ? Number(assetNominal)
           : Number(assetNominal) * -1,
     };
-  
+
     const transactionFinalData: TransactionType = {
       id: crypto.randomUUID(),
       header: String(new Date()),
       body: [],
     };
 
-    transactionFinalData.body.push(transactionBody)
-
+    transactionFinalData.body.push(transactionBody);
 
     await processData(
       formTransaction.typeTransaction,
@@ -296,6 +324,8 @@ export const processAsset: AssetProcessProps = {
     return result;
   },
   async updateData(formData, userId) {
+    // Perbaikin di bagian sini nanti. Ada masalah.
+    // Jadi, ketika nominal data lama berubah, data baru nominalnya tidak berubah.
     const {
       assetCategory,
       assetDescription,
