@@ -243,6 +243,7 @@ export const processAsset: AssetProcessProps = {
       assetCategory,
       newAssetCategory,
       assetDescription,
+      assetColor
     } = formData;
 
     const userData = await getUserData(userId);
@@ -306,6 +307,7 @@ export const processAsset: AssetProcessProps = {
       amount: assetNominal,
       description: decodeURIComponent(assetDescription),
       group: assetGroup,
+      color: assetColor
     };
 
     userAssetData.push(finalData);
@@ -326,6 +328,7 @@ export const processAsset: AssetProcessProps = {
   async updateData(formData, userId) {
     // Perbaikin di bagian sini nanti. Ada masalah.
     // Jadi, ketika nominal data lama berubah, data baru nominalnya tidak berubah.
+    // Kemungkinan masalahnya ada di function synchronize
     const {
       assetCategory,
       assetDescription,
@@ -333,6 +336,7 @@ export const processAsset: AssetProcessProps = {
       assetNominal,
       oldAssetName,
       newAssetCategory,
+      assetColor
     } = formData;
 
     const finalData: AssetsData = {
@@ -340,6 +344,7 @@ export const processAsset: AssetProcessProps = {
       amount: assetNominal,
       description: decodeURIComponent(assetDescription),
       group: newAssetCategory ? newAssetCategory : assetCategory,
+      color: assetColor
     };
 
     const userData = await getUserData(userId);

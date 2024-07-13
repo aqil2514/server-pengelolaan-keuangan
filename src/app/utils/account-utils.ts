@@ -21,6 +21,7 @@ import {
 } from "../zodSchema/account";
 import { STATUS_OK, STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 import { TransactionType } from "@customTypes/Transaction";
+import { defaultData } from "@/lib/data";
 
 interface ValidationResponse {
   isValid: boolean;
@@ -143,33 +144,12 @@ export async function createDataUser(id: string) {
       return;
     }
 
-    // Default Assets
-    const userAssetData: AssetsData[] = [
-      {
-        name: "Kantong Utama",
-        group: "Tunai",
-        amount: 0,
-        description: "Kantong yang berbagai macam uang",
-      },
-      {
-        name: "Bank BRI",
-        group: "Rekening",
-        amount: 0,
-        description: "ATM untuk menyimpang uang",
-      },
-      {
-        name: "Dana",
-        group: "E-Wallet",
-        amount: 0,
-        description: "Untuk Jajan",
-      },
-    ];
 
     // Default Transaction
     const userTransactionData: TransactionType[] = [];
 
     // Encrypt Assets Data
-    const encryptAssetData = encryptAssets(userAssetData, id);
+    const encryptAssetData = encryptAssets(defaultData.asset, id);
 
     // Encrypt Transaction Data
     const encryptTransaction = encryptTransactionData(

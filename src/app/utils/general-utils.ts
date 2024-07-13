@@ -111,6 +111,9 @@ export async function synchronizeUserData(data: AccountData, uid: string) {
     const groupAsset = decryptAsset.find(
       (asset) => asset.name.trim() === assetName
     )?.group;
+    const assetColor = decryptAsset.find(
+      (asset) => asset.name.trim() === assetName
+    )?.color;
 
     const assetItem: AssetsData = {
       name: assetName,
@@ -119,6 +122,7 @@ export async function synchronizeUserData(data: AccountData, uid: string) {
         ? descriptionAsset
         : "Aset belum diberi deskripsi",
       group: groupAsset ? groupAsset : "Aset belum diberi kategori",
+      color: assetColor ? assetColor : getRandomHexColor()
     };
 
     updatedAsset.push(assetItem);

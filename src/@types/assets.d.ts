@@ -10,6 +10,8 @@ export interface AssetsData {
   description: string;
   /** Nama aset */
   name: string;
+  /** Warna tema aset */
+  color: string;
 }
 
 /**
@@ -28,6 +30,8 @@ export interface AssetFormValues {
   newAssetCategory?: string;
   /** Deskripsi aset */
   assetDescription: string;
+  /** Warna tema aset */
+  assetColor: string;
 }
 
 // Interface untuk opsi penghapusan aset
