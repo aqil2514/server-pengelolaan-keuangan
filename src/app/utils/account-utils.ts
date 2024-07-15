@@ -83,9 +83,9 @@ export function validateRegistration(formData: AccountRegister): BasicResponse {
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const notifMessages: Record<string,string> = {
+      const notifMessages: Record<string, string> = {
         username: "Username tidak valid",
-        password:"Password tidak valid",
+        password: "Password tidak valid",
         email: "Email tidak valid",
         language: "Bahasa tidak valid",
         purposeUsage: "Tujuan penggunaan tidak valid",
@@ -94,7 +94,7 @@ export function validateRegistration(formData: AccountRegister): BasicResponse {
       };
       const errors: ErrorValidationResponse[] = error.issues.map((e) => {
         const path = String(e.path[0]);
-        const notifMessage = notifMessages[path]
+        const notifMessage = notifMessages[path];
 
         return {
           message: e.message,
@@ -107,20 +107,69 @@ export function validateRegistration(formData: AccountRegister): BasicResponse {
         message: "Validasi gagal",
         status: "error",
         statusCode: STATUS_UNPROCESSABLE_ENTITY,
-        data:errors,
+        data: errors,
       };
 
       return response;
     }
   }
 
-  const response: BasicResponse={
-    message:"Validasi akun",
+  const response: BasicResponse = {
+    message: "Validasi akun",
     status: "success",
-    statusCode: STATUS_OK
-  }
+    statusCode: STATUS_OK,
+  };
 
   return response;
+}
+
+export async function createNewUserByEmail(
+  email: string
+): Promise<BasicResponse<AccountDB>> {
+  const userAccountData: AccountDB = {
+    username: "",
+    privacy: {} as AccountDB["privacy"],
+    config: {
+      currency: "IDR",
+      language: "ID",
+      purposeUsage: "Individu",
+    } as AccountDB["config"],
+    password: "",
+    email: String(email),
+    statusFlags: {
+      isHavePassword: false,
+      isVerified: true,
+      isHaveSecurityQuiz: false,
+    },
+  };
+
+  try {
+    const { data } = await supabase
+      .from("user")
+      .insert(userAccountData)
+      .select();
+
+    if (!data) throw new Error("Data tidak ditemukan");
+    const user: AccountDB = data[0];
+
+    const response: BasicResponse<AccountDB> = {
+      message: "Akun berhasil dibuat",
+      status: "success",
+      data: user,
+    };
+
+    return response;
+  } catch (error) {
+    console.error("Terjadi kesalahan saat membuat user baru : ", error);
+
+    const response: BasicResponse<AccountDB> = {
+      message: "Gagal membuat akun baru",
+      status: "error",
+      data: {} as AccountDB,
+    };
+
+    return response;
+  }
 }
 
 export async function createDataUser(id: string) {
@@ -144,7 +193,6 @@ export async function createDataUser(id: string) {
       return;
     }
 
-
     // Default Transaction
     const userTransactionData: TransactionType[] = [];
 
@@ -160,6 +208,7 @@ export async function createDataUser(id: string) {
     // Prepare User Data
     const userData: AccountData = {
       userId: id,
+      createdAt: new Date(),
       user_assets: encryptAssetData,
       user_transaction: encryptTransaction,
     };
@@ -198,7 +247,7 @@ function isAccountDB(data: any): data is AccountDB {
   return data && typeof data.password === "string";
 }
 
-export function isUserData(data:any):data is AccountData{
+export function isUserData(data: any): data is AccountData {
   return data && typeof data.userId === "string";
 }
 

@@ -24,14 +24,22 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
 
   if(!userData) throw new Error("User data tidak ada")
 
-  const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
+    
+    try {
+      console.log(userData)
+      const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
+      
+    } catch (error) {
+      console.error("Terjadi kesalahan:", error)
+    }
+  //   const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
 
-  const transactionData = getTransactionData(
-    String(userData.user_transaction),
-    uid
-  );
+  // const transactionData = getTransactionData(
+  //   String(userData.user_transaction),
+  //   uid
+  // );
 
-  return res.status(200).json({ assetData, transactionData });
+  // return res.status(200).json({ assetData, transactionData });
 });
 
 assetsRouter.post("/", async (req: Request, res: Response) => {

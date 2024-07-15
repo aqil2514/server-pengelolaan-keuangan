@@ -5,6 +5,8 @@ import supabase from "../lib/db";
 import { encryptAssets, getDecryptedAssetData } from "./asset-utils";
 import { getDecryptedTransactionData } from "./transaction-utils";
 
+
+
 /**
  * Menghasilkan hex color number secara random
  * @returns {string} Hex Color Number
@@ -17,6 +19,28 @@ export function getRandomHexColor(): string {
     color += hexCharacters[randomIndex];
   }
   return color;
+}
+
+/**
+ * Mendapatkan semua nama aset tanpa duplikat
+ * @param transactions Data Transaksi
+ * @param assets Data Asset
+ * @returns Set object yang berisi nama-nama set
+ */
+export function getUniqueAssetNames(transactions: TransactionType[], assets: AssetsData[]): Set<string> {
+  const assetNames = new Set<string>();
+
+  transactions.forEach((transaction) => {
+    transaction.body.forEach((transactionItem) => {
+      assetNames.add(transactionItem.asset.trim());
+    });
+  });
+
+  assets.forEach((asset) => {
+    assetNames.add(asset.name.trim());
+  });
+
+  return assetNames;
 }
 
 export async function getUser(id: string) {

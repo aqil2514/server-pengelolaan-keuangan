@@ -9,6 +9,7 @@ import {
 } from "../../@types/Account";
 import {
   createDataUser,
+  createNewUserByEmail,
   isThereUser,
   isValidEmail,
   saveUser,
@@ -215,35 +216,10 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
   let userAccount: AccountDB = users[0];
 
   if (!userAccount) {
-    const userCreate: AccountDB = {
-      username: "",
-      privacy: {} as AccountDB["privacy"],
-      config: {
-        currency: "IDR",
-        language: "ID",
-        purposeUsage: "Individu",
-      } as AccountDB["config"],
-      password: "",
-      email: String(email),
-      statusFlags: {
-        isHavePassword: false,
-        isVerified: true,
-        isHaveSecurityQuiz: false,
-      },
-    };
+    const newUser = await createNewUserByEmail(String(email));
 
-    const { data, error } = await supabase
-      .from("user")
-      .insert(userCreate)
-      .select("*");
-    if (error)
-      return res
-        .status(500)
-        .json({ success: false, message: "Gagal membuat akun baru" });
-
-    userAccount = data[0];
-
-    await createDataUser(String(userAccount.uid));
+    // TODO : Akalin bagian sini. Ada bug
+    await createDataUser(String(newUser.data?.uid));
   }
 
   const { uid, username, privacy, config, statusFlags } = userAccount;

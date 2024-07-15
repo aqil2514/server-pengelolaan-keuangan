@@ -30,7 +30,7 @@ s_route.get("/", async (req: Request, res: Response) => {
     const data: ChartData = {
       name: asset.name,
       percent: calculatePercent(assetData, asset),
-      color: getRandomHexColor(),
+      color: asset.color,
     };
 
     chartData.push(data);

@@ -36,7 +36,7 @@ transactionRoute.get("/", async (req: Request, res: Response) => {
   if (!data?.user_transaction)
     return res.status(200).json({ success: false, data: null });
 
-  await synchronizeUserData(data, data.userId);
+  // await synchronizeUserData(data, data.userId);
 
   let resDb: TransactionType[] = [];
 

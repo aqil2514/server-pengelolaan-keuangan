@@ -147,8 +147,8 @@ export function calculatePercent(
     return result;
   }, 0);
 
-   // *Jika semua nominalnya adalah 0, kembalikan 0 untuk menghindari pembagian dengan 0
-   if (allNominal === 0) return 0;
+  // *Jika semua nominalnya adalah 0, kembalikan 0 untuk menghindari pembagian dengan 0
+  if (allNominal === 0) return 0;
 
   // *Ambil nominal dari currentData dan hitung persentasenya
   const selectedNominal = currentData.amount;
@@ -223,7 +223,7 @@ export const getOrCreateUserData = async (
   // Mengambil data pengguna dari database
   const userData = await getUserData(uid);
 
-  await synchronizeUserData(userData, uid);
+  // await synchronizeUserData(userData, uid);
 
   // Mengambil data pengguna yang diperbarui atau baru dibuat dari database
   const data = await supabase
@@ -243,7 +243,7 @@ export const processAsset: AssetProcessProps = {
       assetCategory,
       newAssetCategory,
       assetDescription,
-      assetColor
+      assetColor,
     } = formData;
 
     const userData = await getUserData(userId);
@@ -274,40 +274,40 @@ export const processAsset: AssetProcessProps = {
       userId,
     };
 
-    const transactionBody: TransactionBodyType = {
-      uid: crypto.randomUUID(),
-      asset: assetName,
-      category: "Modal",
-      item: "Uang awal",
-      price:
-        formTransaction.typeTransaction === "Pemasukan"
-          ? Number(assetNominal)
-          : Number(assetNominal) * -1,
-    };
+    // const transactionBody: TransactionBodyType = {
+    //   uid: crypto.randomUUID(),
+    //   asset: assetName,
+    //   category: "Modal",
+    //   item: "Uang awal",
+    //   price:
+    //     formTransaction.typeTransaction === "Pemasukan"
+    //       ? Number(assetNominal)
+    //       : Number(assetNominal) * -1,
+    // };
 
-    const transactionFinalData: TransactionType = {
-      id: crypto.randomUUID(),
-      header: String(new Date()),
-      body: [],
-    };
+    // const transactionFinalData: TransactionType = {
+    //   id: crypto.randomUUID(),
+    //   header: String(new Date()),
+    //   body: [],
+    // };
 
-    transactionFinalData.body.push(transactionBody);
+    // transactionFinalData.body.push(transactionBody);
 
-    await processData(
-      formTransaction.typeTransaction,
-      formTransaction,
-      userData as AccountData,
-      transactionBody,
-      formTransaction.dateTransaction.toISOString(),
-      transactionFinalData
-    );
+    // await processData(
+    //   formTransaction.typeTransaction,
+    //   formTransaction,
+    //   userData as AccountData,
+    //   transactionBody,
+    //   formTransaction.dateTransaction.toISOString(),
+    //   transactionFinalData
+    // );
 
     const finalData: AssetsData = {
       name: assetName,
       amount: assetNominal,
       description: decodeURIComponent(assetDescription),
       group: assetGroup,
-      color: assetColor
+      color: assetColor,
     };
 
     userAssetData.push(finalData);
@@ -336,7 +336,7 @@ export const processAsset: AssetProcessProps = {
       assetNominal,
       oldAssetName,
       newAssetCategory,
-      assetColor
+      assetColor,
     } = formData;
 
     const finalData: AssetsData = {
@@ -344,7 +344,7 @@ export const processAsset: AssetProcessProps = {
       amount: assetNominal,
       description: decodeURIComponent(assetDescription),
       group: newAssetCategory ? newAssetCategory : assetCategory,
-      color: assetColor
+      color: assetColor,
     };
 
     const userData = await getUserData(userId);
@@ -498,4 +498,37 @@ export const saveAssetData = async (finalData: string, userId: string) => {
     .eq("userId", userId)
     .select();
   return result;
+};
+
+/**
+ * Memperbarui nominal asset saat ini. Biasa digunakan jika ada operasi matematika di Transaksi
+ * @param assetName Nama aset
+ * @param nominal Nominal
+ * @param userId User ID
+ */
+export const updateAssetNominal = async (
+  assetName: string,
+  nominal: number,
+  userId: string
+) => {
+  try {
+    // Cari data punya user dengan userId
+    const userData = await getUserData(userId);
+
+    // Dekripsi datanya
+    const decryptData = getDecryptedAssetData(userData.user_assets, userId);
+
+    // Pilih data yang assetnamenya sesuai
+    const dataIndex = decryptData.findIndex((data) => data.name === assetName);
+    if (dataIndex === -1) throw new Error("Data asset tidak ditemukan");
+
+    // Lakukan operasi matematika
+    decryptData[dataIndex].amount += nominal;
+
+    // Enkripsi dan Save data
+    await saveAssetData(JSON.stringify(decryptData), userId);
+  } catch (error) {
+    console.error("Terjadi error saat update nominal Asset:", error);
+    throw error;
+  }
 };

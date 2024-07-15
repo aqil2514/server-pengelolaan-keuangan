@@ -1,3 +1,4 @@
+import { Database } from "@customTypes/Database";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 

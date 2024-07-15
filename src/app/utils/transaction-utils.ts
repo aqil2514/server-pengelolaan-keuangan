@@ -15,7 +15,7 @@ import supabase from "../lib/db";
 import { TransactionFormDataSchema } from "../zodSchema/transaction";
 import { ErrorValidationResponse } from "../../@types/General";
 import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
-import { assetTransfer } from "./asset-utils";
+import { assetTransfer, updateAssetNominal } from "./asset-utils";
 
 function addNewTransaction(
   dateTransaction: string,
@@ -221,8 +221,10 @@ export const handleTransaction: HandleTransactionProps = {
       String(dateTransaction)
     );
     if (allocation) {
+      await updateAssetNominal(dataBody.asset, dataBody.price, userId);
       await saveTransaction.updateData(allocation, userId);
     } else {
+      await updateAssetNominal(dataBody.asset, dataBody.price, userId);
       await saveTransaction.newData(dataBody, finalData, userId);
     }
 
