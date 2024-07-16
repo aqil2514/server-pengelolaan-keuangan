@@ -1,5 +1,6 @@
 import { ZodError, ZodIssue, isValid, z } from "zod";
 import {
+  DeleteRequest,
   HandleTransactionProps,
   TransactionBasicResponse,
   TransactionBodyType,
@@ -13,9 +14,10 @@ import { Account, AccountData } from "../../@types/Account";
 import CryptoJS from "crypto-js";
 import supabase from "../lib/db";
 import { TransactionFormDataSchema } from "../zodSchema/transaction";
-import { ErrorValidationResponse } from "../../@types/General";
+import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
 import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 import { assetTransfer, updateAssetNominal } from "./asset-utils";
+import { getUserData } from "./general-utils";
 
 function addNewTransaction(
   dateTransaction: string,
@@ -273,10 +275,7 @@ export const handleTransaction: HandleTransactionProps = {
     finalData.body.push(fromAssetData);
     finalData.body.push(toAssetData);
 
-    const bodies:TransactionBodyType[] = [
-      fromAssetData,
-      toAssetData
-    ]
+    const bodies: TransactionBodyType[] = [fromAssetData, toAssetData];
 
     const allocation = await transactionAllocation(
       userData,
@@ -332,7 +331,6 @@ export async function processData(
   dateTransaction: string,
   finalData: TransactionType
 ) {
-
   if (typeTransaction === "Pemasukan")
     return await handleTransaction.income(
       formData,
@@ -357,6 +355,55 @@ export async function processData(
     dateTransaction,
     finalData
   );
+}
+
+export async function processDeleteData(
+  uid: string,
+  body: DeleteRequest
+): Promise<BasicResponse> {
+  const userData = await getUserData(uid);
+
+  if (!userData) {
+    const response: BasicResponse = {
+      message: "Data user tidak ada",
+      status: "error",
+      statusCode: 404,
+    };
+    return response;
+  }
+
+  const transactions = getTransactionData(
+    String(userData.user_transaction),
+    String(userData.userId)
+  );
+
+  if (!transactions) {
+    const response: BasicResponse = {
+      message: "Data transaksi tidak ditemukan",
+      status: "error",
+      statusCode: 404,
+    };
+    return response;
+  }
+
+  const filteredTransaction = transactions
+    .find((d) => d.id === body.id)
+    ?.body.filter((d) => d.uid !== body.uid);
+
+  if (filteredTransaction) {
+    transactions.find((d) => d.id === body.id)!.body = filteredTransaction;
+  }
+
+  const newTransaction = transactions.filter((d) => d.body.length !== 0);
+
+  await saveTransaction.updateData(newTransaction, uid);
+
+  const response: BasicResponse = {
+    message: "Data berhasil dihapus",
+    status: "success",
+  };
+
+  return response;
 }
 
 export const saveTransaction: TransactionSaveFunctions = {
@@ -412,15 +459,19 @@ export async function transactionAllocation(
     return addNewTransaction(dateTransaction, transactions, body);
   }
 
-  if(Array.isArray(body)){
-    for(const b of body){
+  if (Array.isArray(body)) {
+    for (const b of body) {
       selectedTransaction.body.push(b);
     }
-  }else{
+  } else {
     selectedTransaction.body.push(body);
   }
 
   return transactions;
+}
+
+export function validateRequest(body: any): boolean {
+  return body && typeof body.id === "string" && typeof body.uid === "string";
 }
 
 export function validateTransaction(

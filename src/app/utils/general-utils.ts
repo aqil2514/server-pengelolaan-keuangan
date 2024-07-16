@@ -4,8 +4,7 @@ import { AssetsData } from "../../@types/Assets";
 import supabase from "../lib/db";
 import { encryptAssets, getDecryptedAssetData } from "./asset-utils";
 import { getDecryptedTransactionData } from "./transaction-utils";
-
-
+import { BasicResponse } from "@customTypes/General";
 
 /**
  * Menghasilkan hex color number secara random
@@ -27,7 +26,10 @@ export function getRandomHexColor(): string {
  * @param assets Data Asset
  * @returns Set object yang berisi nama-nama set
  */
-export function getUniqueAssetNames(transactions: TransactionType[], assets: AssetsData[]): Set<string> {
+export function getUniqueAssetNames(
+  transactions: TransactionType[],
+  assets: AssetsData[]
+): Set<string> {
   const assetNames = new Set<string>();
 
   transactions.forEach((transaction) => {
@@ -142,6 +144,16 @@ export async function getUserData(id: string) {
 //     .update({ user_assets: encryptData })
 //     .eq("userId", uid);
 // }
+
+export function makeReponse(
+  status: BasicResponse["status"],
+  statusCode: number | undefined
+) {
+  const code = status === "success" ? 200 : 400;
+  const httpCode = statusCode ? statusCode : code;
+
+  return httpCode;
+}
 
 /**
  * Mengkapitalisasi huruf pertama dari setiap kata dalam string.

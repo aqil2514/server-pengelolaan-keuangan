@@ -3,6 +3,11 @@ import { AccountData } from "./Account";
 import { BasicResponse } from "./General";
 import { TransactionFormDataSchema } from "../app/zodSchema/transaction";
 
+export interface DeleteRequest{
+  uid:string;
+  id:string;
+}
+
 export interface ErrorsTransaction {
   type: string;
   total: string;

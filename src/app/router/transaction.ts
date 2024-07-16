@@ -10,12 +10,15 @@ import {
   encryptTransactionData,
   getTransactionData,
   processData,
+  processDeleteData,
+  validateRequest,
   validateTransaction,
 } from "../utils/transaction-utils";
 import CryptoJS from "crypto-js";
 import {
   getUser,
   getUserData,
+  makeReponse,
   // synchronizeUserData,
 } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
@@ -61,9 +64,7 @@ transactionRoute.post("/add", async (req: Request, res: Response) => {
 
   const userData = await getUserData(userId);
 
-  if (!userData) {
-    await supabase.from("user_data").insert({ userId });
-  }
+  if (!userData) throw new Error("User data tidak ditemukan");
 
   const dataBody: TransactionBodyType = {
     uid: crypto.randomUUID(),
@@ -187,49 +188,14 @@ transactionRoute.delete("/", async (req: Request, res: Response) => {
   const userId = req.headers["user-id"] as string;
   const body = req.body;
 
-  if (!body || typeof body.id !== "string" || typeof body.uid !== "string") {
-    return res.status(400).json({ message: "Data permintaan tidak valid" });
+  if (!validateRequest(body)) {
+    throw new Error("Permintaan tidak valid");
   }
 
-  const user = await getUser(userId);
-  if (!user) {
-    return res.status(404).json({ message: "User tidak ditemukan" });
-  }
+  const deleteResult = await processDeleteData(userId, body);
+  const httpCode = makeReponse(deleteResult.status, deleteResult.statusCode);
 
-  const userData = await getUserData(String(user.uid));
-  if (!userData) {
-    return res.status(404).json({ message: "Data pengguna tidak ditemukan" });
-  }
-
-  const transactions = getTransactionData(
-    String(userData.user_transaction),
-    String(userData.userId)
-  );
-  if (!transactions) {
-    return res.status(404).json({ message: "Data transaksi tidak ditemukan" });
-  }
-
-  const filteredTransaction = transactions
-    .find((d) => d.id === body.id)
-    ?.body.filter((d) => d.uid !== body.uid);
-
-  if (filteredTransaction) {
-    transactions.find((d) => d.id === body.id)!.body = filteredTransaction;
-  }
-
-  const newTransaction = transactions.filter((d) => d.body.length !== 0);
-
-  const encryptData = encryptTransactionData(
-    JSON.stringify(newTransaction),
-    String(user.uid)
-  );
-
-  await supabase
-    .from("user_data")
-    .update({ user_transaction: encryptData })
-    .eq("userId", String(user.uid));
-
-  return res.status(200).json({ message: "Data berhasil dihapus" });
+  return res.status(httpCode).json(deleteResult);
 });
 
 export default transactionRoute;

@@ -526,7 +526,8 @@ export const updateAssetNominal = async (
     decryptData[dataIndex].amount += nominal;
 
     // Enkripsi dan Save data
-    await saveAssetData(JSON.stringify(decryptData), userId);
+    const encryptedData = encryptAssets(decryptData, userId); 
+    await saveAssetData(encryptedData, userId);
   } catch (error) {
     console.error("Terjadi error saat update nominal Asset:", error);
     throw error;
