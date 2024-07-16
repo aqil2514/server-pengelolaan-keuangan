@@ -170,6 +170,7 @@ export async function createNewUserByEmail(
 
     return response;
   }
+
 }
 
 export async function createDataUser(id: string) {
@@ -208,7 +209,7 @@ export async function createDataUser(id: string) {
     // Prepare User Data
     const userData: AccountData = {
       userId: id,
-      createdAt: new Date(),
+      created_at: new Date().toISOString(),
       user_assets: encryptAssetData,
       user_transaction: encryptTransaction,
     };

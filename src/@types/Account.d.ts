@@ -27,7 +27,7 @@ export interface AccountPrivacy {
 
 export interface AccountData {
   userId: string;
-  createdAt: Date;
+  created_at: string;
   user_transaction: string;
   user_assets: string;
 }

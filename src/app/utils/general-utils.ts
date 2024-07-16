@@ -77,88 +77,71 @@ export async function getUserData(id: string) {
 }
 
 // TODO : Bikin penanganan gimana kalo asset dari user itu masih kosong
-export async function synchronizeUserData(data: AccountData, uid: string) {
-  let decryptTransaction: TransactionType[] = [];
-  const decryptAsset = getDecryptedAssetData(
-    String(data.user_assets),
-    data.userId
-  );
-  const dataTrasaction = getDecryptedTransactionData(
-    String(data.user_transaction),
-    data.userId
-  );
+// export async function synchronizeUserData(data: AccountData, uid: string) {
+//   const decryptAsset = getDecryptedAssetData(
+//     String(data.user_assets),
+//     data.userId
+//   );
+//   const decryptTransaction = getDecryptedTransactionData(
+//     String(data.user_transaction),
+//     data.userId
+//   );
 
-  if (Array.isArray(dataTrasaction)) decryptTransaction = dataTrasaction;
-  else {
-    decryptTransaction.push(dataTrasaction);
-  }
+//   // const assetNames = new Set<string>();
+//   const assetNames = getUniqueAssetNames(decryptTransaction,decryptAsset);
 
-  const assetNames = new Set<string>();
+//   // Membuat array dari setiap nama aset yang unik
+//   const uniqueAssetNames = Array.from(assetNames);
 
-  // Mengumpulkan nama aset dari data transaksi tanpa duplikat
-  decryptTransaction.forEach((transaction) => {
-    transaction.body.forEach((transactionItem) => {
-      assetNames.add(transactionItem.asset.trim());
-    });
-  });
+//   const updatedAsset: AssetsData[] = [];
 
-  // Mengumpulkan nama aset dari data aset tanpa duplikat
-  decryptAsset.forEach((asset) => {
-    assetNames.add(asset.name.trim());
-  });
+//   uniqueAssetNames.forEach((assetName) => {
+//     // Mencari transaksi yang berkaitan dengan aset
+//     const relatedTransactions = decryptTransaction.filter((transaction) =>
+//       transaction.body.some(
+//         (transactionItem) => transactionItem.asset.trim() === assetName
+//       )
+//     );
 
-  // Membuat array dari setiap nama aset yang unik
-  const uniqueAssetNames = Array.from(assetNames);
+//     // Menghitung jumlah total aset dan mencari deskripsi aset
+//     const amountSum = relatedTransactions
+//       .flatMap((transaction) =>
+//         transaction.body.filter(
+//           (transactionItem) => transactionItem.asset.trim() === assetName
+//         )
+//       )
+//       .reduce((acc, curr) => acc + curr.price, 0);
 
-  const updatedAsset: AssetsData[] = [];
+//     const descriptionAsset = decryptAsset.find(
+//       (asset) => asset.name.trim() === assetName
+//     )?.description;
+//     const groupAsset = decryptAsset.find(
+//       (asset) => asset.name.trim() === assetName
+//     )?.group;
+//     const assetColor = decryptAsset.find(
+//       (asset) => asset.name.trim() === assetName
+//     )?.color;
 
-  uniqueAssetNames.forEach((assetName) => {
-    // Mencari transaksi yang berkaitan dengan aset
-    const relatedTransactions = decryptTransaction.filter((transaction) =>
-      transaction.body.some(
-        (transactionItem) => transactionItem.asset.trim() === assetName
-      )
-    );
+//     const assetItem: AssetsData = {
+//       name: assetName,
+//       amount: amountSum,
+//       description: descriptionAsset
+//         ? descriptionAsset
+//         : "Aset belum diberi deskripsi",
+//       group: groupAsset ? groupAsset : "Aset belum diberi kategori",
+//       color: assetColor ? assetColor : getRandomHexColor()
+//     };
 
-    // Menghitung jumlah total aset dan mencari deskripsi aset
-    const amountSum = relatedTransactions
-      .flatMap((transaction) =>
-        transaction.body.filter(
-          (transactionItem) => transactionItem.asset.trim() === assetName
-        )
-      )
-      .reduce((acc, curr) => acc + curr.price, 0);
+//     updatedAsset.push(assetItem);
+//   });
 
-    const descriptionAsset = decryptAsset.find(
-      (asset) => asset.name.trim() === assetName
-    )?.description;
-    const groupAsset = decryptAsset.find(
-      (asset) => asset.name.trim() === assetName
-    )?.group;
-    const assetColor = decryptAsset.find(
-      (asset) => asset.name.trim() === assetName
-    )?.color;
+//   const encryptData = encryptAssets(updatedAsset, uid).toString();
 
-    const assetItem: AssetsData = {
-      name: assetName,
-      amount: amountSum,
-      description: descriptionAsset
-        ? descriptionAsset
-        : "Aset belum diberi deskripsi",
-      group: groupAsset ? groupAsset : "Aset belum diberi kategori",
-      color: assetColor ? assetColor : getRandomHexColor()
-    };
-
-    updatedAsset.push(assetItem);
-  });
-
-  const encryptData = encryptAssets(updatedAsset, uid).toString();
-
-  return await supabase
-    .from("user_data")
-    .update({ user_assets: encryptData })
-    .eq("userId", uid);
-}
+//   return await supabase
+//     .from("user_data")
+//     .update({ user_assets: encryptData })
+//     .eq("userId", uid);
+// }
 
 /**
  * Mengkapitalisasi huruf pertama dari setiap kata dalam string.

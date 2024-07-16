@@ -9,22 +9,17 @@ import {
   editTransactionData,
   encryptTransactionData,
   getTransactionData,
-  handleTransaction,
-  handleValidationError,
   processData,
-  transactionAllocation,
   validateTransaction,
 } from "../utils/transaction-utils";
 import CryptoJS from "crypto-js";
 import {
   getUser,
   getUserData,
-  synchronizeUserData,
+  // synchronizeUserData,
 } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
-import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
-import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
-import { isUserData } from "../utils/account-utils";
+import { ErrorValidationResponse } from "../../@types/General";
 
 const transactionRoute = express.Router();
 

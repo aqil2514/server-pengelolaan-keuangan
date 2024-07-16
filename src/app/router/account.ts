@@ -218,8 +218,11 @@ accountRoute.get("/getUser", async (req: Request, res: Response) => {
   if (!userAccount) {
     const newUser = await createNewUserByEmail(String(email));
 
-    // TODO : Akalin bagian sini. Ada bug
+    if(!newUser.data) throw new Error("Terjadi kesalahan saat membuat user baru")
+
     await createDataUser(String(newUser.data?.uid));
+
+    userAccount = newUser.data;
   }
 
   const { uid, username, privacy, config, statusFlags } = userAccount;

@@ -22,24 +22,37 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
 
   const userData = await getOrCreateUserData(uid);
 
-  if(!userData) throw new Error("User data tidak ada")
+  if (!userData) throw new Error("User data tidak ada");
 
+  type ResponseData = {
+    assetData: AssetsData[];
+    transactionData: TransactionType[];
+  };
+
+  try {
+    const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
+    const transactionData = getTransactionData(
+      String(userData.user_transaction),
+      uid
+    );
+
+    const response: BasicResponse<ResponseData> = {
+      message: "Pengambilan data berhasil",
+      status: "success",
+      data: { assetData, transactionData },
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Terjadi kesalahan:", error);
+    const response: BasicResponse<ResponseData> = {
+      message: "Terjadi kesalahan saat pengambilan data",
+      status: "success",
+      data: {} as ResponseData,
+    };
     
-    try {
-      console.log(userData)
-      const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
-      
-    } catch (error) {
-      console.error("Terjadi kesalahan:", error)
-    }
-  //   const assetData = getDecryptedAssetData(String(userData?.user_assets), uid);
-
-  // const transactionData = getTransactionData(
-  //   String(userData.user_transaction),
-  //   uid
-  // );
-
-  // return res.status(200).json({ assetData, transactionData });
+    return res.status(400).json(response);
+  }
 });
 
 assetsRouter.post("/", async (req: Request, res: Response) => {

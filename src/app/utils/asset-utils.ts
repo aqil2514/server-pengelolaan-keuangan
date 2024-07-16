@@ -2,7 +2,7 @@ import supabase from "../lib/db";
 import CryptoJS from "crypto-js";
 import {
   getUserData,
-  synchronizeUserData,
+  // synchronizeUserData,
   toCapitalizeWords,
 } from "./general-utils";
 import {
