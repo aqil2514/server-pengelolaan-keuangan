@@ -5,9 +5,13 @@
   "main": "/src/index.js",
   "scripts": {
     "build": "npx tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/src/app/index.js",
     "dev": "nodemon src/app/index.ts",
     "vercel-build": "echo hello"
+  },
+  "_moduleAliases": {
+    "@customTypes": "src/@types",
+    "@": "src/app"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +36,7 @@
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "module-alias": "^2.2.3",
     "multer": "^1.4.5-lts.1",
     "typescript-eslint": "^7.8.0",
     "vercel": "^34.2.0",
