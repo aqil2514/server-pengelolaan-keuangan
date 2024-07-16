@@ -502,8 +502,8 @@ export const saveAssetData = async (finalData: string, userId: string) => {
 
 /**
  * Memperbarui nominal asset saat ini. Biasa digunakan jika ada operasi matematika di Transaksi
- * @param assetName Nama aset
- * @param nominal Nominal
+ * @param assetName Nama aset yang akan dihapus
+ * @param nominal Nominalnya. Jika ingin dikurang, cukup tambahkan *-1. 
  * @param userId User ID
  */
 export const updateAssetNominal = async (

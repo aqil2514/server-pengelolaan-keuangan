@@ -357,6 +357,7 @@ export async function processData(
   );
 }
 
+// TODO: Next rapihin ini. Jadi nanti pakek throw new Error ajah.
 export async function processDeleteData(
   uid: string,
   body: DeleteRequest
@@ -376,6 +377,22 @@ export async function processDeleteData(
     String(userData.user_transaction),
     String(userData.userId)
   );
+  const selectedTransaction = transactions.find((d) => d.id === body.id);
+
+  if (!selectedTransaction)
+    throw new Error("Terjadi kesalahan saat pemilihan data transaksi");
+
+  const transactionAssetName = selectedTransaction.body.find(
+    (d) => d.uid === body.uid
+  )?.asset;
+  const transactionAssetNominal = selectedTransaction.body.find(
+    (d) => d.uid === body.uid
+  )?.price;
+
+  if (!transactionAssetName)
+    throw new Error("Nama Aset transaksi tidak ditemukan");
+  if (!transactionAssetNominal)
+    throw new Error("Nominal aset tidak ditemukan");
 
   if (!transactions) {
     const response: BasicResponse = {
@@ -396,6 +413,7 @@ export async function processDeleteData(
 
   const newTransaction = transactions.filter((d) => d.body.length !== 0);
 
+  await updateAssetNominal(transactionAssetName, transactionAssetNominal * -1, uid)
   await saveTransaction.updateData(newTransaction, uid);
 
   const response: BasicResponse = {
