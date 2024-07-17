@@ -16,20 +16,11 @@ import {
   STATUS_NOT_FOUND,
   STATUS_OK,
   STATUS_UNPROCESSABLE_ENTITY,
-} from "@/lib/httpStatusCodes";
-import { AccountData } from "@customTypes/Account";
-import {
-  AssetDeleteOption,
-  AssetProcessProps,
-  AssetsData,
-  AssetTransferData,
-} from "@customTypes/Assets";
-import {
-  TransactionBodyType,
-  TransactionFormData,
-  TransactionType,
-} from "@customTypes/Transaction";
-import { BasicResponse } from "@customTypes/General";
+} from "../lib/httpStatusCodes";
+import { AccountData } from "src/@types/Account";
+import { AssetDeleteOption, AssetProcessProps, AssetsData, AssetTransferData } from "src/@types/Assets";
+import { TransactionBodyType, TransactionFormData } from "src/@types/Transaction";
+import { BasicResponse } from "src/@types/General";
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)

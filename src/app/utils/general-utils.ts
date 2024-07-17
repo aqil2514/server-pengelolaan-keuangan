@@ -4,7 +4,7 @@ import { AssetsData } from "../../@types/Assets";
 import supabase from "../lib/db";
 import { encryptAssets, getDecryptedAssetData } from "./asset-utils";
 import { getDecryptedTransactionData } from "./transaction-utils";
-import { BasicResponse } from "@customTypes/General";
+import { BasicResponse } from "src/@types/General";
 
 /**
  * Menghasilkan hex color number secara random

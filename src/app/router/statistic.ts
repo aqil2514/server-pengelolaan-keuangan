@@ -1,12 +1,7 @@
-import {
-    calculatePercent,
-  getDecryptedAssetData,
-  getOrCreateUserData,
-} from "@/utils/asset-utils";
-import { getRandomHexColor } from "@/utils/general-utils";
-import { BasicResponse } from "@customTypes/General";
-import { ChartData } from "@customTypes/Statistic";
 import express, { Request, Response } from "express";
+import { calculatePercent, getDecryptedAssetData, getOrCreateUserData } from "../utils/asset-utils";
+import { ChartData } from "src/@types/Statistic";
+import { BasicResponse } from "src/@types/General";
 
 const s_route = express.Router();
 

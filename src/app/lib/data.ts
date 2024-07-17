@@ -1,4 +1,4 @@
-import { ClientEndpointType, DefaultData } from "@customTypes/Lib";
+import { ClientEndpointType, DefaultData } from "src/@types/Lib";
 
 
 export const clientEndpoint: ClientEndpointType = {

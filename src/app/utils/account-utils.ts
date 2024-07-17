@@ -10,7 +10,6 @@ import {
   ValidationFunction,
 } from "../../@types/Account";
 import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
-import { AssetsData } from "../../@types/Assets";
 import { encryptAssets } from "./asset-utils";
 import supabase from "../lib/db";
 import { encryptTransactionData } from "./transaction-utils";
@@ -20,8 +19,8 @@ import {
   accountRegisterSchema,
 } from "../zodSchema/account";
 import { STATUS_OK, STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
-import { TransactionType } from "@customTypes/Transaction";
-import { defaultData } from "@/lib/data";
+import { defaultData } from "../lib/data";
+import { TransactionType } from "src/@types/Transaction";
 
 interface ValidationResponse {
   isValid: boolean;
