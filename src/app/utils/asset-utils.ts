@@ -7,6 +7,7 @@ import {
 } from "./general-utils";
 import {
   getDecryptedTransactionData,
+  getSelectedTransactionBodyData,
   processData,
   saveTransaction,
 } from "./transaction-utils";
@@ -18,8 +19,17 @@ import {
   STATUS_UNPROCESSABLE_ENTITY,
 } from "../lib/httpStatusCodes";
 import { AccountData } from "src/@types/Account";
-import { AssetDeleteOption, AssetProcessProps, AssetsData, AssetTransferData } from "src/@types/Assets";
-import { TransactionBodyType, TransactionFormData } from "src/@types/Transaction";
+import {
+  AssetDeleteOption,
+  AssetProcessProps,
+  AssetsData,
+  AssetTransferData,
+} from "src/@types/Assets";
+import {
+  TransactionBodyType,
+  TransactionFormData,
+  TransactionType,
+} from "src/@types/Transaction";
 import { BasicResponse } from "src/@types/General";
 
 /**
@@ -494,7 +504,7 @@ export const saveAssetData = async (finalData: string, userId: string) => {
 /**
  * Memperbarui nominal asset saat ini. Biasa digunakan jika ada operasi matematika di Transaksi
  * @param assetName Nama aset yang akan dihapus
- * @param nominal Nominalnya. Jika ingin dikurang, cukup tambahkan *-1. 
+ * @param nominal Nominalnya. Jika ingin dikurang, cukup tambahkan *-1.
  * @param userId User ID
  */
 export const updateAssetNominal = async (
@@ -517,10 +527,45 @@ export const updateAssetNominal = async (
     decryptData[dataIndex].amount += nominal;
 
     // Enkripsi dan Save data
-    const encryptedData = encryptAssets(decryptData, userId); 
+    const encryptedData = encryptAssets(decryptData, userId);
     await saveAssetData(encryptedData, userId);
   } catch (error) {
     console.error("Terjadi error saat update nominal Asset:", error);
     throw error;
   }
+};
+
+export const editAssetNominal = async (
+  transaction: TransactionType[],
+  form: TransactionFormData,
+  userId: string
+): Promise<TransactionType[]> => {
+  // * Persiapan Awal *
+  const { idTransaction, uidTransaction, assetsTransaction } = form; // ! Ambil beberapa data yang diperlukan
+  const selectedData = getSelectedTransactionBodyData(
+    transaction,
+    String(idTransaction),
+    String(uidTransaction)
+  ); // ! Seleksi data yang akan dipilih
+  const newData = selectedData; // ! Data baru
+  const oldData = selectedData; // ! Data lama
+
+  console.log(newData)
+  console.log(oldData)
+
+  const userData = await getUserData(userId); // ! Dapatkan user data. Ini masih dalam bentuk enkripsi
+  const decryptUserData = getDecryptedAssetData(userData.user_assets, userId); // ! Data user didekripsi
+
+  // * Persiapan Awal Selesai *
+
+  // ? Bagaimana jika nominalnya berubah?
+  if(oldData.price !== newData.price){
+    console.log("Perubahan harga terdeteksi")
+  }
+  // ? Bagaimana jika nama asetnya berubah?
+  else if(oldData.asset !== newData.asset){
+    console.log("Perubahan nama aset terdeteksi")
+  }
+
+  return transaction;
 };

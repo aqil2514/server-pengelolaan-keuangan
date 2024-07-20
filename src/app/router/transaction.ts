@@ -23,6 +23,7 @@ import {
 } from "../utils/general-utils";
 import { AccountData } from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
+import { editAssetNominal } from "../utils/asset-utils";
 
 const transactionRoute = express.Router();
 
@@ -155,6 +156,9 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
   );
 
   const resultEdit = editTransactionData(transactions, formData);
+
+  // Akalin ini nanti. Lagi g mudeng
+  await editAssetNominal(transactions, formData, userId) 
 
   const encryptData = encryptTransactionData(
     JSON.stringify(resultEdit),

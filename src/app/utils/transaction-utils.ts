@@ -62,9 +62,7 @@ export function editTransactionData(
   if (!selectedData) throw new Error("Data yang akan diedit tidak ada");
   if (!oldSelectedData) throw new Error("Data lama tidak ada");
 
-  const selectedBodyData = selectedData.body.find(
-    (d) => d.uid === uidTransaction
-  );
+  const selectedBodyData = getSelectedTransactionBodyData(data, String(idTransaction), String(uidTransaction))
   if (!selectedBodyData) throw new Error("Data body tidak ada");
 
   if (selectedData.header === oldSelectedData.header) {
@@ -162,6 +160,25 @@ export const getDecryptedTransactionData = (
 
   return transactionData;
 };
+
+export function getSelectedTransactionBodyData(
+  data: TransactionType[],
+  idTransaction: string,
+  uidTransaction: string
+) {
+  const selectedData = data.find((d) => d.id === idTransaction);
+  const oldSelectedData = data.find((d) => d.id === idTransaction);
+  if (!selectedData) throw new Error("Data yang akan diedit tidak ada");
+  if (!oldSelectedData) throw new Error("Data lama tidak ada");
+
+  const selectedBodyData = selectedData.body.find(
+    (d) => d.uid === uidTransaction
+  );
+
+  if(!selectedBodyData) throw new Error("Data tidak ditemukan")
+
+  return selectedBodyData;
+}
 
 /**
  * Fungsi untuk mendekripsi dan mengurai data transaksi.
@@ -391,8 +408,7 @@ export async function processDeleteData(
 
   if (!transactionAssetName)
     throw new Error("Nama Aset transaksi tidak ditemukan");
-  if (!transactionAssetNominal)
-    throw new Error("Nominal aset tidak ditemukan");
+  if (!transactionAssetNominal) throw new Error("Nominal aset tidak ditemukan");
 
   if (!transactions) {
     const response: BasicResponse = {
@@ -413,7 +429,11 @@ export async function processDeleteData(
 
   const newTransaction = transactions.filter((d) => d.body.length !== 0);
 
-  await updateAssetNominal(transactionAssetName, transactionAssetNominal * -1, uid)
+  await updateAssetNominal(
+    transactionAssetName,
+    transactionAssetNominal * -1,
+    uid
+  );
   await saveTransaction.updateData(newTransaction, uid);
 
   const response: BasicResponse = {
