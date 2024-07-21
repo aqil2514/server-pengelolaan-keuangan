@@ -1,19 +1,13 @@
 import express, { Request, Response } from "express";
 import {
-  assetDeleteOption,
-  changeAssetTransaction,
-  encryptAssets,
   getDecryptedAssetData,
   getOrCreateUserData,
-  processAsset,
-  saveAssetData,
 } from "../utils/asset-utils";
 import { AssetFormValues, AssetsData, DeleteOption } from "../../@types/Assets";
-import { getUserData } from "../utils/general-utils";
 import { getTransactionData } from "../utils/transaction-utils";
 import { TransactionType } from "../../@types/Transaction";
-import { STATUS_UNPROCESSABLE_ENTITY } from "../lib/httpStatusCodes";
 import { BasicResponse } from "../../@types/General";
+import { processAsset } from "asset-utils/manipulation";
 
 const assetsRouter = express.Router();
 
@@ -50,7 +44,7 @@ assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
       status: "success",
       data: {} as ResponseData,
     };
-    
+
     return res.status(400).json(response);
   }
 });
