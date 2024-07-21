@@ -7,7 +7,7 @@ import { AssetFormValues, AssetsData, DeleteOption } from "../../@types/Assets";
 import { getTransactionData } from "../utils/transaction-utils";
 import { TransactionType } from "../../@types/Transaction";
 import { BasicResponse } from "../../@types/General";
-import { processAsset } from "asset-utils/manipulation";
+import { processAsset } from "../utils/asset-utils/manipulation";
 
 const assetsRouter = express.Router();
 
