@@ -167,9 +167,7 @@ export function getSelectedTransactionBodyData(
   uidTransaction: string
 ) {
   const selectedData = data.find((d) => d.id === idTransaction);
-  const oldSelectedData = data.find((d) => d.id === idTransaction);
   if (!selectedData) throw new Error("Data yang akan diedit tidak ada");
-  if (!oldSelectedData) throw new Error("Data lama tidak ada");
 
   const selectedBodyData = selectedData.body.find(
     (d) => d.uid === uidTransaction

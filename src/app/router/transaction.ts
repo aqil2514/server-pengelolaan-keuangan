@@ -154,11 +154,12 @@ transactionRoute.put("/", async (req: Request, res: Response) => {
     String(userData.user_transaction),
     userId
   );
+  
+  // Akalin ini nanti. Lagi g mudeng
+  await editAssetNominal(transactions, formData, userId) 
 
   const resultEdit = editTransactionData(transactions, formData);
 
-  // Akalin ini nanti. Lagi g mudeng
-  await editAssetNominal(transactions, formData, userId) 
 
   const encryptData = encryptTransactionData(
     JSON.stringify(resultEdit),

@@ -1,11 +1,4 @@
 import { AssetProcessProps, AssetsData } from "src/@types/Assets";
-import {
-  STATUS_BAD_REQUEST,
-  STATUS_CONFLICT,
-  STATUS_NOT_FOUND,
-  STATUS_OK,
-  STATUS_UNPROCESSABLE_ENTITY,
-} from "src/app/lib/httpStatusCodes";
 import { getUserData } from "../general-utils";
 import {
   assetDeleteOption,
@@ -40,7 +33,7 @@ export const processAsset: AssetProcessProps = {
       const result: BasicResponse<AssetsData> = {
         message: "Nama Aset sudah ada",
         status: "error",
-        statusCode: STATUS_UNPROCESSABLE_ENTITY,
+        statusCode: 422,
         data: {} as AssetsData,
       };
       return result;
@@ -102,15 +95,12 @@ export const processAsset: AssetProcessProps = {
       message: "Asset berhasil dibuat",
       status: "success",
       data: finalData,
-      statusCode: STATUS_OK,
+      statusCode: 200,
     };
 
     return result;
   },
   async updateData(formData, userId) {
-    // Perbaikin di bagian sini nanti. Ada masalah.
-    // Jadi, ketika nominal data lama berubah, data baru nominalnya tidak berubah.
-    // Kemungkinan masalahnya ada di function synchronize
     const {
       assetCategory,
       assetDescription,
@@ -136,7 +126,7 @@ export const processAsset: AssetProcessProps = {
         message: "User tidak ditemukan",
         status: "error",
         data: {} as AssetsData,
-        statusCode: STATUS_NOT_FOUND,
+        statusCode: 404,
       };
       return result;
     }
@@ -154,7 +144,7 @@ export const processAsset: AssetProcessProps = {
         message: "Nama Aset sudah ada",
         status: "error",
         data: {} as AssetsData,
-        statusCode: STATUS_CONFLICT,
+        statusCode: 409,
       };
       return result;
     }
@@ -168,7 +158,7 @@ export const processAsset: AssetProcessProps = {
         message: "Data tidak ditemukan",
         status: "error",
         data: {} as AssetsData,
-        statusCode: STATUS_NOT_FOUND,
+        statusCode: 404,
       };
       return result;
     }
@@ -192,7 +182,7 @@ export const processAsset: AssetProcessProps = {
         message: "Nama Aset sudah ada",
         status: "error",
         data: {} as AssetsData,
-        statusCode: STATUS_BAD_REQUEST,
+        statusCode: 400,
       };
       return result;
     }
@@ -201,7 +191,7 @@ export const processAsset: AssetProcessProps = {
       message: "Data berhasil diubah",
       status: "success",
       data: finalData,
-      statusCode: STATUS_OK,
+      statusCode: 200,
     };
     return result;
   },
@@ -211,7 +201,7 @@ export const processAsset: AssetProcessProps = {
     if (!userData) {
       const result: BasicResponse<null> = {
         message: "User tidak ditemukan",
-        statusCode: STATUS_NOT_FOUND,
+        statusCode: 404,
         status: "error",
         data: null,
       };
@@ -251,7 +241,7 @@ export const processAsset: AssetProcessProps = {
         message: "Terjadi kesalahan saat menyimpan data",
         status: "error",
         data: null,
-        statusCode: STATUS_BAD_REQUEST,
+        statusCode: 400,
       };
       return result;
     }
@@ -260,7 +250,7 @@ export const processAsset: AssetProcessProps = {
       message: "Aset berhasil dihapus",
       status: "success",
       data: null,
-      statusCode: STATUS_OK,
+      statusCode: 200,
     };
 
     return result;

@@ -214,6 +214,7 @@ export const getOrCreateUserData = async (
   // Mengambil data pengguna dari database
   const userData = await getUserData(uid);
 
+  // * Function di bwaah ternyata perlu. Nanti difix */
   // await synchronizeUserData(userData, uid);
 
   // Mengambil data pengguna yang diperbarui atau baru dibuat dari database
@@ -281,29 +282,45 @@ export const editAssetNominal = async (
   userId: string
 ): Promise<TransactionType[]> => {
   // * Persiapan Awal *
-  const { idTransaction, uidTransaction, assetsTransaction } = form; // ! Ambil beberapa data yang diperlukan
+  const { idTransaction, uidTransaction, assetsTransaction, categoryTransaction, noteTransaction, typeTransaction,totalTransaction } = form; // ! Ambil beberapa data yang diperlukan
   const selectedData = getSelectedTransactionBodyData(
     transaction,
     String(idTransaction),
     String(uidTransaction)
   ); // ! Seleksi data yang akan dipilih
-  const newData = selectedData; // ! Data baru
   const oldData = selectedData; // ! Data lama
-
-  console.log(newData)
-  console.log(oldData)
+  const newData:TransactionBodyType = {
+    asset:assetsTransaction,
+    category: categoryTransaction,
+    item: noteTransaction,
+    price: typeTransaction === "Pemasukan" ? totalTransaction : totalTransaction * -1,
+  }; // ! Data baru
 
   const userData = await getUserData(userId); // ! Dapatkan user data. Ini masih dalam bentuk enkripsi
-  const decryptUserData = getDecryptedAssetData(userData.user_assets, userId); // ! Data user didekripsi
+  const assetData = getDecryptedAssetData(userData.user_assets, userId); // ! Data user didekripsi
 
   // * Persiapan Awal Selesai *
 
-  // ? Bagaimana jika nominalnya berubah?
-  if(oldData.price !== newData.price){
-    console.log("Perubahan harga terdeteksi")
-  }
+ // ? Bagaimana jika nominalnya berubah?
+if (oldData.price !== newData.price) {
+  const assetIndex = assetData.findIndex((asset) => asset.name === oldData.asset);
+
+  if (assetIndex < 0) throw new Error("Data aset yang dipilih tidak ada");
+
+  // Mengurangi harga lama dan menambahkan harga baru
+  const oldPrice = oldData.price || 0; // Default ke 0 jika undefined
+  const newPrice = newData.price || 0; // Default ke 0 jika undefined
+
+  assetData[assetIndex].amount = Math.max(
+    0,
+    assetData[assetIndex].amount - oldPrice + newPrice
+  );
+
+  await saveAssetData(JSON.stringify(assetData), userId);
+}
+  
   // ? Bagaimana jika nama asetnya berubah?
-  else if(oldData.asset !== newData.asset){
+  if(oldData.asset !== newData.asset){
     console.log("Perubahan nama aset terdeteksi")
   }
 
