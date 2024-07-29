@@ -169,10 +169,16 @@ export async function createNewUserByEmail(
 
     return response;
   }
-
 }
 
-export async function createDataUser(id: string) {
+export async function createDataUser(id: string): Promise<AccountData> {
+  const defaultUserData: AccountData = {
+    userId: id,
+    created_at: new Date().toISOString(),
+    user_assets: "",
+    user_transaction: "",
+  };
+
   try {
     // Validasi ID
     if (!id) {
@@ -190,7 +196,7 @@ export async function createDataUser(id: string) {
     }
 
     if (existingData && existingData.length > 0) {
-      return;
+      return defaultUserData;
     }
 
     // Default Transaction
@@ -222,8 +228,10 @@ export async function createDataUser(id: string) {
     }
 
     console.info("User data created successfully for user ID:", id);
+    return userData;
   } catch (error) {
     console.error("Error creating user data:", error);
+    return defaultUserData;
   }
 }
 

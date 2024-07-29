@@ -8,15 +8,17 @@ import { getTransactionData } from "../utils/transaction-utils";
 import { TransactionType } from "../../@types/Transaction";
 import { BasicResponse } from "../../@types/General";
 import { processAsset } from "../utils/asset-utils/process";
+import { createDataUser } from "../utils/account-utils";
+import { getUserData } from "../utils/general-utils";
 
 const assetsRouter = express.Router();
 
 assetsRouter.get("/getAssets", async (req: Request, res: Response) => {
   const uid = String(req.query.uid);
 
-  const userData = await getOrCreateUserData(uid);
+  let userData = await getUserData(uid);
 
-  if (!userData) throw new Error("User data tidak ada");
+  if (!userData) userData = await createDataUser(uid);
 
   type ResponseData = {
     assetData: AssetsData[];
