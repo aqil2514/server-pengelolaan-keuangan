@@ -4,12 +4,12 @@ import {
   getOrCreateUserData,
 } from "../utils/asset-utils";
 import { AssetFormValues, AssetsData, DeleteOption } from "../../@types/Assets";
-import { getTransactionData } from "../utils/transaction-utils";
 import { TransactionType } from "../../@types/Transaction";
 import { BasicResponse } from "../../@types/General";
 import { processAsset } from "../utils/asset-utils/process";
 import { createDataUser } from "../utils/account-utils";
 import { getUserData } from "../utils/general-utils";
+import { getTransactionData } from "../utils/transaction-utils/fetching";
 
 const assetsRouter = express.Router();
 

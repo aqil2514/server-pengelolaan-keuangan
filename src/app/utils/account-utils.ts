@@ -12,7 +12,7 @@ import {
 import { BasicResponse, ErrorValidationResponse } from "../../@types/General";
 import { encryptAssets } from "./asset-utils";
 import supabase from "../lib/db";
-import { encryptTransactionData } from "./transaction-utils";
+import { encryptTransactionData } from "./transaction-utils/misc";
 import bcrypt from "bcrypt";
 import {
   accountProfileSchema,

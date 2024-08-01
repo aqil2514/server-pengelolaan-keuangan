@@ -6,14 +6,8 @@ import {
 import supabase from "../lib/db";
 import express, { Request, Response } from "express";
 import {
-  editTransactionData,
   encryptTransactionData,
-  getTransactionData,
-  processData,
-  processDeleteData,
-  validateRequest,
-  validateTransaction,
-} from "../utils/transaction-utils";
+} from "../utils/transaction-utils/misc";
 import CryptoJS from "crypto-js";
 import {
   getUser,
@@ -24,6 +18,10 @@ import {
 import { AccountData } from "../../@types/Account";
 import { ErrorValidationResponse } from "../../@types/General";
 import { editAssetNominal } from "../utils/asset-utils";
+import { validateRequest, validateTransaction } from "../utils/transaction-utils/validation";
+import { editTransactionData } from "../utils/transaction-utils/manipulation";
+import { processData, processDeleteData } from "../utils/transaction-utils/proccess";
+import { getTransactionData } from "../utils/transaction-utils/fetching";
 
 const transactionRoute = express.Router();
 

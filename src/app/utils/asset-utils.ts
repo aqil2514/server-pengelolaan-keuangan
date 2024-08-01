@@ -8,8 +8,7 @@ import {
 import {
   getDecryptedTransactionData,
   getSelectedTransactionBodyData,
-  saveTransaction,
-} from "./transaction-utils";
+} from "./transaction-utils/fetching";
 import { AccountData } from "src/@types/Account";
 import {
   AssetDeleteOption,
@@ -21,6 +20,7 @@ import {
   TransactionFormData,
   TransactionType,
 } from "src/@types/Transaction";
+import { saveTransaction } from "./transaction-utils/manipulation";
 
 /**
  * Mengenkripsi data aset yang diberikan menggunakan identifier unik pengguna (uid)

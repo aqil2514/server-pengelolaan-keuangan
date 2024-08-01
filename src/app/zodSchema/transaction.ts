@@ -1,8 +1,8 @@
 import { z } from "zod";
 import {
   setToMidnight,
-  validateTransferField,
-} from "../utils/transaction-utils";
+} from "../utils/transaction-utils/misc";
+import { validateTransferField } from "../utils/transaction-utils/validation";
 
 export const TransactionFormDataSchema = z
   .object({
