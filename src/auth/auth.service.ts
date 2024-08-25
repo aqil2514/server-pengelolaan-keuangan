@@ -71,6 +71,15 @@ export class AuthService {
     return this.makeHttpRespons.success('Login berhasil', userData);
   }
 
+  async googleLogin(email: string) {
+    const user = await this.supabaseService.getUser('email', email);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: userPassword, ...userData } = user;
+
+    return userData;
+  }
+
   create(createAuthDto: CreateAuthDto) {
     return 'This action adds a new auth';
   }
