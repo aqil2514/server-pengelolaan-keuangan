@@ -8,13 +8,18 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { CredentialAuthDto } from './dto/credential-auth.dto';
 import { SupabaseService } from 'src/supabase/supabase.service';
-import { isValidEmail } from './utils';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/supabase/entities/user.entity';
+import { ValidationUtils } from './utils/auth-validation.utils';
+import { MakeHttpRespons } from 'src/shared/httpResponse.utils';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly validationUtils: ValidationUtils,
+    private readonly makeHttpRespons: MakeHttpRespons,
+  ) {}
   private readonly logger = new Logger(AuthService.name);
 
   /**
@@ -31,7 +36,7 @@ export class AuthService {
 
     // <<<<< Cek dulu yang diterima, apakah email atau username >>>>>
     this.logger.debug('Memulai pengecekan kredensial');
-    const isEmail = isValidEmail(credential);
+    const isEmail = this.validationUtils.isValidEmail(credential);
     const type = isEmail ? 'email' : 'username';
 
     this.logger.debug(
@@ -42,7 +47,7 @@ export class AuthService {
 
       user = findUser;
     } catch {
-      this.logger.error("User tidak ditemukan");
+      this.logger.error('User tidak ditemukan');
       throw new NotFoundException('User tidak ditemukan');
     }
 
@@ -63,7 +68,7 @@ export class AuthService {
       `Login berhasil! username: ${userData.username}, email: ${userData.email}`,
     );
 
-    return userData;
+    return this.makeHttpRespons.success('Login berhasil', userData);
   }
 
   create(createAuthDto: CreateAuthDto) {
