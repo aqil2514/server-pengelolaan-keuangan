@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { User } from './entities/user.entity';
+import { UserData } from './entities/user-data.entity';
 
 @Injectable()
 export class SupabaseService {
@@ -20,10 +21,7 @@ export class SupabaseService {
     return this.client;
   }
 
-  async getUser(
-    type: 'email' | 'username',
-    credential: string,
-  ): Promise<User> {
+  async getUser(type: 'email' | 'username', credential: string): Promise<User> {
     try {
       const { data, error } = await this.client
         .from('user')
@@ -34,14 +32,36 @@ export class SupabaseService {
         throw new Error(`Terjadi Kesalahan : ${error}`);
       }
 
-      if (data.length === 0){
-        throw new Error("User tidak ditemukan")
+      if (data.length === 0) {
+        throw new Error('User tidak ditemukan');
       }
-      
-      return data[0]
+
+      return data[0];
     } catch (error) {
-        console.error(error);
-        throw new Error("Terjadi kesalahan pada server")
+      console.error(error);
+      throw new Error('Terjadi kesalahan pada server');
+    }
+  }
+
+  async getUserData(userId: string): Promise<UserData> {
+    try {
+      const { data, error } = await this.client
+        .from('user_data')
+        .select()
+        .eq('userId', userId);
+
+      if (error) {
+        throw new Error(`Terjadi Kesalahan : ${error}`);
+      }
+
+      if (data.length === 0) {
+        throw new Error('User tidak ditemukan');
+      }
+
+      return data[0];
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Terjadi kesalahan pada server');
     }
   }
 }
