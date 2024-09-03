@@ -14,7 +14,7 @@ export class SupabaseService {
     const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
 
     this.client = createClient(supabaseUrl, supabaseKey);
-    this.logger.log('Koneksi SUpabase Berhasil');
+    this.logger.log('Koneksi Supabase Berhasil');
   }
 
   getClient(): SupabaseClient {

@@ -10,8 +10,8 @@ export class TransactionController {
   @Get()
   async testing(@Req() req: Request, @Res() res: Response) {
     const userId = req.headers['user-id'] as string;
-    await this.transactionService.getTransaction(userId);
+    const transaction = await this.transactionService.getTransaction(userId);
 
-    return res.json({ message: 'OK' });
+    return res.json(transaction);
   }
 }
