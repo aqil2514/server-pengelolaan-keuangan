@@ -4,6 +4,7 @@ import { Category } from './category.entity';
 export const dummyAccounts: Accounts[] = [
   {
     account_id: 'acc-001',
+   name: "Uang Tunai",
     amount: 1500000,
     currency: 'IDR',
     icon: 'https://example.com/icons/cash.png',
@@ -14,6 +15,7 @@ export const dummyAccounts: Accounts[] = [
   },
   {
     account_id: 'acc-002',
+    name: "Go-Pay",
     amount: 5000000,
     currency: 'IDR',
     icon: 'https://example.com/icons/ewallet.png',
@@ -24,6 +26,7 @@ export const dummyAccounts: Accounts[] = [
   },
   {
     account_id: 'acc-003',
+    name:"BRI",
     amount: 10000000,
     currency: 'IDR',
     icon: new URL('https://example.com/icons/bank.png'),
@@ -34,6 +37,7 @@ export const dummyAccounts: Accounts[] = [
   },
   {
     account_id: 'acc-004',
+    name:"Paypal",
     amount: 2500000,
     currency: 'USD',
     icon: 'https://example.com/icons/international-bank.png',
@@ -44,6 +48,7 @@ export const dummyAccounts: Accounts[] = [
   },
   {
     account_id: 'acc-005',
+    name:"SeaBank",
     amount: 750000,
     currency: 'IDR',
     icon: 'https://example.com/icons/cashless.png',
@@ -99,3 +104,5 @@ export const dummyCategories: Category[] = [
     created_at: new Date('2023-05-12'),
   },
 ];
+
+

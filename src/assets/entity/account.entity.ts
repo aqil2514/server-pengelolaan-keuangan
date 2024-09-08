@@ -1,6 +1,8 @@
 export interface Accounts{
     /** ID Akun */
     account_id: `acc-${string}`;
+    /** Nama akunnya */
+    name: string;
     /** Jumlah nominal uang yang ada di akun ini */
     amount: number;
     /** Jenis mata uang pada akun ini */
