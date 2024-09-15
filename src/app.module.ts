@@ -8,10 +8,13 @@ import { AssetsController } from './assets/assets.controller';
 import { AssetsService } from './assets/assets.service';
 import { AssetsModule } from './assets/assets.module';
 import { SharedModule } from './shared/shared.module';
+import { GetDataController } from './get-data/get-data.controller';
+import { GetDataModule } from './get-data/get-data.module';
+import { GetDataService } from './get-data/get-data.service';
 
 @Module({
-  imports: [AuthModule, TransactionModule, AssetsModule, SharedModule],
-  controllers: [AppController, TransactionController, AssetsController],
-  providers: [AppService, AssetsService],
+  imports: [AuthModule, TransactionModule, AssetsModule, SharedModule, GetDataModule],
+  controllers: [AppController, TransactionController, AssetsController, GetDataController],
+  providers: [AppService, AssetsService, GetDataService],
 })
 export class AppModule {}
