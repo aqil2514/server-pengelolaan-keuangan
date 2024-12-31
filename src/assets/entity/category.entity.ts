@@ -8,8 +8,11 @@ export interface Category {
     /** Warna atau kode warna untuk kategori ini */
     color: `#${string}`;
     /** Icon yang terkait dengan kategori ini */
-    icon: string | URL;
+    icon?: {
+      type:  "default-icon" | "url" | "upload",
+      name: string
+  };
     /** Tanggal kapan kategori ini dibuat */
-    created_at: Date;
+    created_at: string;
   }
   

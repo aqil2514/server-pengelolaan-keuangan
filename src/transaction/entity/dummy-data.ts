@@ -3,12 +3,13 @@ import { Transaction } from './transaction.entity';
 export const dummyTransactions: Transaction[] = [
   {
     id: 'tr-002',
+    userId: "test",
     created_at: new Date('2024-09-02T15:30:00Z'),
     updated_at: new Date('2024-09-02T15:30:00Z'),
     transaction_at: new Date('2024-09-02T15:30:00Z'),
     name_transaction: 'Pembelian Laptop',
     description: 'Laptop baru untuk keperluan kerja',
-    type_transaction: 'Outcome',
+    type_transaction: 'Pengeluaran',
     category_id: 'trc-002',
     tag: ['electronics', 'work'],
     attachment: 'receipt.pdf',
@@ -20,12 +21,13 @@ export const dummyTransactions: Transaction[] = [
   },
   {
     id: 'tr-001',
+    userId: "test",
     created_at: new Date('2024-09-01T10:00:00Z'),
     updated_at: new Date('2024-09-01T10:00:00Z'),
     transaction_at: new Date('2024-09-01T10:00:00Z'),
     name_transaction: 'Gaji Bulanan',
     description: 'Gaji untuk bulan Agustus 2024',
-    type_transaction: 'Income',
+    type_transaction: 'Pemasukan',
     category_id: 'trc-001',
     tag: ['salary', 'monthly'],
     nominal: {
@@ -36,6 +38,7 @@ export const dummyTransactions: Transaction[] = [
   },
   {
     id: 'tr-003',
+    userId:"test",
     created_at: new Date('2024-09-03T09:00:00Z'),
     updated_at: new Date('2024-09-03T09:00:00Z'),
     transaction_at: new Date('2024-09-03T09:00:00Z'),
@@ -52,12 +55,13 @@ export const dummyTransactions: Transaction[] = [
   },
   {
     id: 'tr-004',
+    userId:"test",
     created_at: new Date('2024-09-04T12:00:00Z'),
     updated_at: new Date('2024-09-04T12:00:00Z'),
     transaction_at: new Date('2024-09-04T12:00:00Z'),
     name_transaction: 'Makan Siang',
     description: 'Makan siang di restoran',
-    type_transaction: 'Outcome',
+    type_transaction: 'Pengeluaran',
     category_id: 'trc-004',
     tag: ['food', 'restaurant'],
     nominal: {
@@ -68,12 +72,13 @@ export const dummyTransactions: Transaction[] = [
   },
   {
     id: 'tr-005',
+    userId:"test",
     created_at: new Date('2024-09-05T08:00:00Z'),
     updated_at: new Date('2024-09-05T08:00:00Z'),
     transaction_at: new Date('2024-09-05T08:00:00Z'),
     name_transaction: 'Pembayaran Listrik',
     description: 'Pembayaran tagihan listrik bulanan',
-    type_transaction: 'Outcome',
+    type_transaction: 'Pengeluaran',
     category_id: 'trc-005',
     tag: ['utilities', 'monthly'],
     nominal: {

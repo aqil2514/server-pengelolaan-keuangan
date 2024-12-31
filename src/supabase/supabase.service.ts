@@ -45,20 +45,20 @@ export class SupabaseService {
 
   async getUserData(userId: string): Promise<UserData> {
     try {
-      const { data, error } = await this.client
+      const res = await this.client
         .from('user_data')
         .select()
         .eq('userId', userId);
 
-      if (error) {
-        throw new Error(`Terjadi Kesalahan : ${error}`);
+      if (res.error) {
+        throw new Error(`Terjadi Kesalahan : ${res.error}`);
       }
 
-      if (data.length === 0) {
+      if (res.data.length === 0) {
         throw new Error('User tidak ditemukan');
       }
 
-      return data[0];
+      return res.data[0];
     } catch (error) {
       this.logger.error(error);
       throw new Error('Terjadi kesalahan pada server');

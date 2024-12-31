@@ -1,1 +1,0 @@
-export type GetDataQuery = "all" | "transaction" | "asset"

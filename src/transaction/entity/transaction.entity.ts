@@ -1,9 +1,12 @@
 export type TransactionId = `tr-${string}`;
+export type TypeTransaction = "Pemasukan" | "Pengeluaran" | "Transfer";
 
 /** Interface untuk transaksi */
 export interface Transaction {
   /** ID Transaksi */
   id: TransactionId;
+  /** User ID */
+  userId: string;
   /** Transaksi dibuat pada tanggal */
   created_at: Date;
   /** Transaksi diupdate pada tanggal */
@@ -15,7 +18,7 @@ export interface Transaction {
   /** Penjelasan transaksi */
   description?: string;
   /** Tipe transaksi */
-  type_transaction: 'Income' | 'Outcome' | 'Transfer';
+  type_transaction: TypeTransaction;
   /** Kategori ID */
   category_id: `trc-${string}`;
   /** Tag Transaksi */
@@ -29,6 +32,20 @@ export interface Transaction {
     /** Jumlah transaksi */
     amount: number;
     /** Mata uang */
-    currency: string;
+    currency?: string;
   };
+}
+
+/** Interface transaction dari client */
+export interface ClientTransactionAddFormData {
+  userId: string; // ID pengguna yang membuat transaksi
+  typeTransaction: TypeTransaction; // Jenis transaksi
+  totalTransaction: number; // Total nominal transaksi (tidak boleh negatif)
+  dateTransaction: Date; // Tanggal transaksi
+  billTransaction: number; // Tagihan yang terkait dengan transaksi (opsional)
+  categoryTransaction: string; // Kategori transaksi
+  noteTransaction: string; // Catatan tambahan untuk transaksi
+  fromAsset: string; // Aset sumber (contoh: rekening bank, e-wallet)
+  toAsset: string; // Aset tujuan (contoh: rekening bank lain, e-wallet)
+  descriptionTransaction: string; // Deskripsi transaksi
 }

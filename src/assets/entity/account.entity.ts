@@ -8,7 +8,10 @@ export interface Accounts{
     /** Jenis mata uang pada akun ini */
     currency: string;
     /** Sumber icon dari akun ini */
-    icon: string | URL;
+    icon?: {
+        type:  "default-icon" | "url" | "upload",
+        name: string
+    };
     /** Warna dari akun ini */
     color: `#${string}`;
     /** Deskripsi akun ini */
@@ -16,5 +19,5 @@ export interface Accounts{
     /** Grup dari akun ini, misal: Tunai, E-Wallet, Bank */
     group: string;
     /** Akun ini dibuat */
-    created_at: Date
+    created_at: string;
 }
