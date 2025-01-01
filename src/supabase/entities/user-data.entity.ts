@@ -3,4 +3,5 @@ export interface UserData{
     created_at: Date;
     user_transaction: string;
     user_assets: string;
+    category_transaction : string;
 }

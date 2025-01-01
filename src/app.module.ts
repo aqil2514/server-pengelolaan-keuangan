@@ -7,6 +7,7 @@ import { AssetsModule } from './assets/assets.module';
 import { SharedModule } from './shared/shared.module';
 import { DataTransformModule } from './data-transform/data-transform.module';
 import { UtilsModule } from './utils/utils.module';
+import { CategoryTransactionModule } from './category-transaction/category-transaction.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UtilsModule } from './utils/utils.module';
     SharedModule,
     DataTransformModule,
     UtilsModule,
+    CategoryTransactionModule,
   ],
   controllers: [AppController], // Hanya controller utama
   providers: [AppService],      // Hanya service utama

@@ -29,9 +29,11 @@ export class TransactionController {
   @Post()
   async addTransactionData(@Body() data: ClientTransactionAddFormData) {
     try {
+      this.logger.log(`Memproses pembuatan tambah data transaksi baru...`)
       const processData =
         await this.transactionService.addTransactionData(data);
         
+        this.logger.log("Proses penambahan data transaksi baru selesai")
       return { success: true, data: processData };
     } catch (error) {
       this.logger.error(error.message, error.stack);

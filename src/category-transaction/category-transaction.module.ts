@@ -1,11 +1,11 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { AssetsService } from './assets.service';
+import { CategoryTransactionService } from './category-transaction.service';
 import { SupabaseModule } from 'src/supabase/supabase.module';
 import { UtilsModule } from 'src/utils/utils.module';
 
 @Module({
   imports: [SupabaseModule, forwardRef(() => UtilsModule)],
-  providers: [AssetsService],
-  exports: [AssetsService],
+  providers: [CategoryTransactionService],
+  exports: [CategoryTransactionService],
 })
-export class AssetsModule {}
+export class CategoryTransactionModule {}

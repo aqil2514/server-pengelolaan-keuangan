@@ -17,9 +17,10 @@ export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
 
   async getTransaction(userId: string) {
+    this.logger.log("mengambil data transaksi user")
     const { user_transaction } = await this.supabaseService.getUserData(userId);
 
-    this.logger.log('Dekripsi dimulai');
+    this.logger.log("Pengambilan data transaksi user berhasil",'Dekripsi dimulai...');
     const transaction = this.utilsService.decryptTransaction(
       user_transaction,
       userId,
